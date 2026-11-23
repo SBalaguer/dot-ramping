@@ -39,7 +39,8 @@
   },
   "pnpm": {
     "overrides": {
-      "@galacticcouncil/chopsticks": "2.3.0"
+      "@galacticcouncil/chopsticks": "2.3.0",
+      "typescript": "$typescript"
     },
     "packageExtensions": {
       "@polkadot-api/json-rpc-provider-proxy": {

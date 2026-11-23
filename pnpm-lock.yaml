@@ -6,6 +6,7 @@ settings:
 
 overrides:
   '@galacticcouncil/chopsticks': 2.3.0
+  typescript: ^5.7.2
 
 packageExtensionsChecksum: 298a33d08d1e6d2a578944067a1ff5f9
 
@@ -61,7 +62,7 @@ importers:
         version: link:../packages/chains
       viem:
         specifier: ^2.58.4
-        version: 2.58.4(typescript@6.0.3)(zod@3.25.76)
+        version: 2.58.4(typescript@5.9.3)(zod@3.25.76)
     devDependencies:
       '@onramp/keys':
         specifier: workspace:*
@@ -71,7 +72,7 @@ importers:
     dependencies:
       '@galacticcouncil/chopsticks':
         specifier: 2.3.0
-        version: 2.3.0(typescript@6.0.3)
+        version: 2.3.0(typescript@5.9.3)
       '@galacticcouncil/descriptors':
         specifier: 2.7.0
         version: 2.7.0
@@ -98,7 +99,7 @@ importers:
         version: 1.2.4
       viem:
         specifier: ^2.58.4
-        version: 2.58.4(typescript@6.0.3)(zod@3.25.76)
+        version: 2.58.4(typescript@5.9.3)(zod@3.25.76)
 
   packages/keys:
     dependencies:
@@ -113,7 +114,7 @@ importers:
         version: 2.2.2(esbuild@0.28.2)(rxjs@7.8.2)
       viem:
         specifier: ^2.58.4
-        version: 2.58.4(typescript@6.0.3)(zod@3.25.76)
+        version: 2.58.4(typescript@5.9.3)(zod@3.25.76)
 
   packages/routes:
     dependencies:
@@ -128,7 +129,7 @@ importers:
         version: 2.2.2(esbuild@0.28.2)(rxjs@7.8.2)
       viem:
         specifier: ^2.58.4
-        version: 2.58.4(typescript@6.0.3)(zod@3.25.76)
+        version: 2.58.4(typescript@5.9.3)(zod@3.25.76)
 
   relayer: {}
 
@@ -136,7 +137,7 @@ importers:
     dependencies:
       '@galacticcouncil/chopsticks':
         specifier: 2.3.0
-        version: 2.3.0(typescript@6.0.3)
+        version: 2.3.0(typescript@5.9.3)
 
   web: {}
 
@@ -1069,20 +1070,20 @@ packages:
     peerDependencies:
       '@typescript-eslint/parser': ^8.73.0
       eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
-      typescript: '>=4.8.4 <6.1.0'
+      typescript: ^5.7.2
 
   '@typescript-eslint/parser@8.73.0':
     resolution: {integrity: sha512-AuL45bVcmssHfZ3Di3cs9Q0l4gBm4ZFVrJOQEE7VpqW+PVgQaEwSwazz4TVIiFabXkk6U51EprYDwqw+HR8ePw==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
       eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
-      typescript: '>=4.8.4 <6.1.0'
+      typescript: ^5.7.2
 
   '@typescript-eslint/project-service@8.73.0':
     resolution: {integrity: sha512-/pEf8Rc4Mjk+qJnY0uO1+Gadeal8uv50xpuic+srG2vIVatA0XxvWMUeMtFvs6OCHqftiQ7/+qH4aehG5stzIA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
-      typescript: '>=4.8.4 <6.1.0'
+      typescript: ^5.7.2
 
   '@typescript-eslint/scope-manager@8.73.0':
     resolution: {integrity: sha512-/TjD738Iq2rzj5z0ixVOi+TsvgjAzZPLPaH1yWdDBytR/HTR5gMpyYWZeCe5WTQZLwk3ho8AV7U3muoQCRtXBQ==}
@@ -1092,14 +1093,14 @@ packages:
     resolution: {integrity: sha512-lmtCFOfYaJfpqZywGuXi4FpNtE+NQ+YLe3T0K9rtEDcW8ZuGWvfI++pj8r05sYMI8vWT2CYK4rWyedmD6Rp4og==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
-      typescript: '>=4.8.4 <6.1.0'
+      typescript: ^5.7.2
 
   '@typescript-eslint/type-utils@8.73.0':
     resolution: {integrity: sha512-MOC9i4xy1F7KcDde7Ip8jf1SrRiALb2Km4UWxGNjUE2YlhjIEo1ayE27GHIwIQyfWuHTmEonQT14uyurlyC6aA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
       eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
-      typescript: '>=4.8.4 <6.1.0'
+      typescript: ^5.7.2
 
   '@typescript-eslint/types@8.73.0':
     resolution: {integrity: sha512-O/1ytYzflF16QDKXx4/qOXg1IuZp+n7hr9t+S0nv7N/2Tl8rJiNCshztV1gcSUvHbPtoX3+zmNbtSAyVbzxVfw==}
@@ -1110,7 +1111,7 @@ packages:
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
       '@typescript/native': npm:typescript@>=7.1.0-dev.20261009.1 || >=7.1.0-beta <7.1.0-dev
-      typescript: '>=4.8.4 <6.1.0'
+      typescript: ^5.7.2
     peerDependenciesMeta:
       '@typescript/native':
         optional: true
@@ -1120,7 +1121,7 @@ packages:
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
       eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
-      typescript: '>=4.8.4 <6.1.0'
+      typescript: ^5.7.2
 
   '@typescript-eslint/visitor-keys@8.73.0':
     resolution: {integrity: sha512-k4lsFVpRZICbltkIEEH4hZRkwXkqDF1GHBpClKQOHQY+RkoZAAuyc1ci3I6p+CB6v3U4jaHIUshc4RzzQXZWLg==}
@@ -1147,7 +1148,7 @@ packages:
   abitype@1.2.3:
     resolution: {integrity: sha512-Ofer5QUnuUdTFsBRwARMoWKOH1ND5ehwYhJ3OJ/BQO+StkwQjHw0XyVh4vDttzHB7QOFhPHa/o413PJ82gU/Tg==}
     peerDependencies:
-      typescript: '>=5.0.4'
+      typescript: ^5.7.2
       zod: ^3.22.0 || ^4.0.0
     peerDependenciesMeta:
       typescript:
@@ -2049,7 +2050,7 @@ packages:
   ox@0.14.67:
     resolution: {integrity: sha512-6v6UlwgsmiyTujZp0aVDuN8uIBAtl/QZadBADFRZ2zp1+CM9TqDzd+rPKJ5PYvWPlCvz8JvoO9dTr42+1PhBhA==}
     peerDependencies:
-      typescript: '>=5.4.0'
+      typescript: ^5.7.2
     peerDependenciesMeta:
       typescript:
         optional: true
@@ -2422,13 +2423,13 @@ packages:
     resolution: {integrity: sha512-OJ/ibxhPlqrMM0UiNHJ/0CKQkoKF243/AEmplt3qpRgkW8VG7IfOS41h7V8TjITqdByHzrjcS/2si+y4lIh8NA==}
     engines: {node: '>=18.12'}
     peerDependencies:
-      typescript: '>=4.8.4'
+      typescript: ^5.7.2
 
   tsc-prog@2.3.0:
     resolution: {integrity: sha512-ycET2d75EgcX7y8EmG4KiZkLAwUzbY4xRhA6NU0uVbHkY4ZjrAAuzTMxXI85kOwATqPnBI5C/7y7rlpY0xdqHA==}
     engines: {node: '>=12'}
     peerDependencies:
-      typescript: '>=4'
+      typescript: ^5.7.2
 
   tslib@2.9.1:
     resolution: {integrity: sha512-a4Ux9VKuIMHsOS7ENbEq6hK2ZGYIT27Rtl0E4eD9KqwxhKiQeMZE/9xb3IdYwWaSOyIBQLExhQgXDTYoiCxnWA==}
@@ -2521,15 +2522,10 @@ packages:
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
       eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
-      typescript: '>=4.8.4 <6.1.0'
+      typescript: ^5.7.2
 
   typescript@5.9.3:
     resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
-    engines: {node: '>=14.17'}
-    hasBin: true
-
-  typescript@6.0.3:
-    resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -2576,7 +2572,7 @@ packages:
     resolution: {integrity: sha512-zeYi2PliKbmJVbIvudHZrYJLh1XMXci6GBJznQLjhhGPGl9L7Hp/LmelpXhOM9VvlXwnvfW7/2PCgpjnc2j8MQ==}
     peerDependencies:
       mppx: '>=0.17.0'
-      typescript: '>=5.0.4'
+      typescript: ^5.7.2
     peerDependenciesMeta:
       mppx:
         optional: true
@@ -2943,7 +2939,7 @@ snapshots:
       '@eslint/core': 1.2.1
       levn: 0.4.1
 
-  '@galacticcouncil/chopsticks-core@2.3.0(typescript@6.0.3)':
+  '@galacticcouncil/chopsticks-core@2.3.0(typescript@5.9.3)':
     dependencies:
       '@acala-network/chopsticks-executor': 1.6.4
       '@polkadot/rpc-provider': 16.5.6
@@ -2959,7 +2955,7 @@ snapshots:
       pino: 9.14.0
       pino-pretty: 13.2.0
       rxjs: 7.8.2
-      viem: 2.58.4(typescript@6.0.3)(zod@3.25.76)
+      viem: 2.58.4(typescript@5.9.3)(zod@3.25.76)
       zod: 3.25.76
     transitivePeerDependencies:
       - bufferutil
@@ -2968,9 +2964,9 @@ snapshots:
       - typescript
       - utf-8-validate
 
-  '@galacticcouncil/chopsticks-db@2.3.0(typescript@6.0.3)':
+  '@galacticcouncil/chopsticks-db@2.3.0(typescript@5.9.3)':
     dependencies:
-      '@galacticcouncil/chopsticks-core': 2.3.0(typescript@6.0.3)
+      '@galacticcouncil/chopsticks-core': 2.3.0(typescript@5.9.3)
       '@polkadot/util': 14.0.3
       idb: 8.0.4
       reflect-metadata: 0.2.2
@@ -2999,11 +2995,11 @@ snapshots:
       - typescript
       - utf-8-validate
 
-  '@galacticcouncil/chopsticks@2.3.0(typescript@6.0.3)':
+  '@galacticcouncil/chopsticks@2.3.0(typescript@5.9.3)':
     dependencies:
       '@dmsnell/diff-match-patch': 1.1.0
-      '@galacticcouncil/chopsticks-core': 2.3.0(typescript@6.0.3)
-      '@galacticcouncil/chopsticks-db': 2.3.0(typescript@6.0.3)
+      '@galacticcouncil/chopsticks-core': 2.3.0(typescript@5.9.3)
+      '@galacticcouncil/chopsticks-db': 2.3.0(typescript@5.9.3)
       '@pnpm/npm-conf': 3.0.3
       '@polkadot/api': 16.5.6
       '@polkadot/api-augment': 16.5.6
@@ -3165,8 +3161,8 @@ snapshots:
       rollup: 4.68.8
       rollup-plugin-esbuild: 6.2.1(esbuild@0.28.2)(rollup@4.68.8)
       rxjs: 7.8.2
-      tsc-prog: 2.3.0(typescript@6.0.3)
-      typescript: 6.0.3
+      tsc-prog: 2.3.0(typescript@5.9.3)
+      typescript: 5.9.3
       write-package: 7.2.0
     transitivePeerDependencies:
       - bufferutil
@@ -3979,11 +3975,6 @@ snapshots:
   abitype@1.2.3(typescript@5.9.3)(zod@3.25.76):
     optionalDependencies:
       typescript: 5.9.3
-      zod: 3.25.76
-
-  abitype@1.2.3(typescript@6.0.3)(zod@3.25.76):
-    optionalDependencies:
-      typescript: 6.0.3
       zod: 3.25.76
 
   acorn-jsx@5.3.2(acorn@8.19.0):
@@ -4854,21 +4845,6 @@ snapshots:
     transitivePeerDependencies:
       - zod
 
-  ox@0.14.67(typescript@6.0.3)(zod@3.25.76):
-    dependencies:
-      '@adraffy/ens-normalize': 1.11.1
-      '@noble/ciphers': 1.3.0
-      '@noble/curves': 1.9.1
-      '@noble/hashes': 1.8.0
-      '@scure/bip32': 1.7.0
-      '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@6.0.3)(zod@3.25.76)
-      eventemitter3: 5.0.1
-    optionalDependencies:
-      typescript: 6.0.3
-    transitivePeerDependencies:
-      - zod
-
   p-limit@3.1.0:
     dependencies:
       yocto-queue: 0.1.0
@@ -5345,9 +5321,9 @@ snapshots:
     dependencies:
       typescript: 5.9.3
 
-  tsc-prog@2.3.0(typescript@6.0.3):
+  tsc-prog@2.3.0(typescript@5.9.3):
     dependencies:
-      typescript: 6.0.3
+      typescript: 5.9.3
 
   tslib@2.9.1: {}
 
@@ -5416,8 +5392,6 @@ snapshots:
 
   typescript@5.9.3: {}
 
-  typescript@6.0.3: {}
-
   undici-types@7.24.6: {}
 
   undici-types@8.9.0: {}
@@ -5461,23 +5435,6 @@ snapshots:
       ws: 8.21.0
     optionalDependencies:
       typescript: 5.9.3
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
-      - zod
-
-  viem@2.58.4(typescript@6.0.3)(zod@3.25.76):
-    dependencies:
-      '@noble/curves': 1.9.1
-      '@noble/hashes': 1.8.0
-      '@scure/bip32': 1.7.0
-      '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@6.0.3)(zod@3.25.76)
-      isows: 1.0.7(ws@8.21.0)
-      ox: 0.14.67(typescript@6.0.3)(zod@3.25.76)
-      ws: 8.21.0
-    optionalDependencies:
-      typescript: 6.0.3
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
