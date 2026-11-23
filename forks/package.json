@@ -9,7 +9,8 @@
   "scripts": {
     "up": "tsx --env-file-if-exists=../.env src/up.ts",
     "down": "tsx src/down.ts",
-    "check": "tsx --env-file-if-exists=../.env src/check.ts"
+    "check": "tsx --env-file-if-exists=../.env src/check.ts",
+    "probe:exchange-asset": "tsx --env-file-if-exists=../.env src/probes/exchange-asset.ts"
   },
   "dependencies": {
     "@galacticcouncil/chopsticks": "2.3.0",

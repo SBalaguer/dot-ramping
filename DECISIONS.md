@@ -299,3 +299,30 @@ Each entry: date, what, why, how to revert.
 - **Why:** chopsticks 2.3.0 pulled in TypeScript 6 as a peer, which gave viem two instances with
   incompatible types across packages.
 - **Revert:** remove the override when the root moves to TypeScript 6.
+
+## 2026-11-23 — ExchangeAsset USDT.sb → USDT on Hydration: not as mainnet stands
+
+- **Question (HANDOFF §8.3, §16):** can the S-ETH XCM swap USDT.sb (1000767) to USDT (10) on Hydration with
+  `ExchangeAsset`, or must the per-top-up key sign `router.sell`?
+- **Method:** `pnpm probe:exchange-asset` runs `DryRunApi.dry_run_xcm` on the Hydration fork (runtime 458,
+  block 17,352,800) with origin Asset Hub and
+  `ReserveAssetDeposited(1000 USDT.sb) → ClearOrigin → BuyExecution → ExchangeAsset(all USDT.sb, want USDT,
+maximal) → DepositAsset`.
+- **Result on mainnet state:** `Incomplete: NoDeal` at the `ExchangeAsset` instruction. Hydration's XCM
+  exchanger trades along the route stored on-chain in `Router.Routes` for the pair and otherwise tries a single
+  Omnipool hop; there is no stored route for (10, 1000767) and USDT.sb is not an Omnipool asset. It is not a
+  limitation of multi-hop or stableswap: `ExchangeAsset` HDX → USDT.sb, which has a stored three-hop route
+  through the Omnipool and stableswap pools 111 and 103, completes.
+- **Can the route be added?** Not by us: the permissionless `Router.set_route` fails with
+  `System.CallFiltered` on this runtime. Only governance can, through `Router.force_insert_route`.
+- **What-if:** with the route `[Aave 10 → 1002, Stableswap 103 1002 → 1000767]` written into fork storage (what
+  governance would store; the exchanger inverts it), the same XCM completes: 999.939059 USDT.sb in,
+  1000.146858 USDT out, about 0.061 USDT.sb of execution fee. A min-out of 1 unit and of 995 USDT pass, 1005 USDT
+  gives `NoDeal`, so a constant small min-out (HANDOFF §7.3) would work.
+- **Decision for M6 (default, pending the owner):** use the documented fallback. The Snowbridge XCM deposits
+  USDT.sb to the beneficiary on Hydration; the per-top-up key then signs `router.sell` with an explicit route
+  and the XCM to Asset Hub, exactly like the W routes. Fees are payable in USDT.sb (an accepted fee currency).
+- **Alternative:** ask Hydration governance to insert the route on mainnet. Until that exists on mainnet,
+  writing it into the fork would be simulating a governance decision, not a setup shortcut of ours.
+- **Probe caveat learned:** a dry-run repeated with identical arguments after `dev_setStorage` is answered
+  from cache, because the head hash does not change; the probe builds a block after changing storage.
