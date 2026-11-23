@@ -15,31 +15,32 @@ import {
 
 import { factoryAbi } from "./abi";
 import { loadArtifact } from "./artifacts";
+import type { FactoryConfig } from "./config";
 
 const FACTORY_SALT = stringToHex("onramp/forwarder-factory/1", { size: 32 });
 
-function factoryInitCode(owner: Address): Hex {
+function factoryInitCode({ owner, relayer, chains }: FactoryConfig): Hex {
   const { bytecode } = loadArtifact("DepositForwarderFactory");
-  return encodeDeployData({ abi: factoryAbi, bytecode, args: [owner] });
+  return encodeDeployData({ abi: factoryAbi, bytecode, args: [owner, relayer, chains] });
 }
 
-/** Where the factory owned by `owner` lives on every chain that has the CREATE2 deployer. */
-export function factoryAddress(owner: Address): Address {
-  return getCreate2Address({ from: CREATE2_DEPLOYER, salt: FACTORY_SALT, bytecode: factoryInitCode(owner) });
+/** Where the factory built from `config` lives on every chain that has the CREATE2 deployer. */
+export function factoryAddress(config: FactoryConfig): Address {
+  return getCreate2Address({ from: CREATE2_DEPLOYER, salt: FACTORY_SALT, bytecode: factoryInitCode(config) });
 }
 
-/** Deploys the factory through the CREATE2 deployer unless it is already there. */
+/** Deploys the factory through the CREATE2 deployer unless it is already there; any funded account can pay. */
 export async function deployFactory(
   wallet: WalletClient<Transport, Chain, Account>,
   reader: PublicClient,
-  owner: Address = wallet.account.address,
+  config: FactoryConfig,
 ): Promise<Address> {
-  const factory = factoryAddress(owner);
+  const factory = factoryAddress(config);
   if (await reader.getCode({ address: factory })) return factory;
 
   const hash = await wallet.sendTransaction({
     to: CREATE2_DEPLOYER,
-    data: concatHex([FACTORY_SALT, factoryInitCode(owner)]),
+    data: concatHex([FACTORY_SALT, factoryInitCode(config)]),
   });
   const receipt = await reader.waitForTransactionReceipt({ hash });
   if (receipt.status !== "success" || !(await reader.getCode({ address: factory }))) {

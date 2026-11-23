@@ -120,6 +120,9 @@ importers:
       '@galacticcouncil/descriptors':
         specifier: 2.7.0
         version: 2.7.0
+      '@onramp/contracts':
+        specifier: workspace:*
+        version: link:../../contracts
       polkadot-api:
         specifier: ^2.2.2
         version: 2.2.2(esbuild@0.28.2)(rxjs@7.8.2)

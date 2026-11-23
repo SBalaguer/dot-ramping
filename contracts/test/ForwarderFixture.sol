@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import {Test} from "forge-std/Test.sol";
 
 import {DepositForwarderFactory} from "../src/DepositForwarderFactory.sol";
-import {Params, Route} from "../src/ForwarderTypes.sol";
+import {ChainRoutes, Params, Route, RouteConfig} from "../src/ForwarderTypes.sol";
 import {BeneficiaryTemplate, BoundTemplate} from "../src/lib/BeneficiaryTemplate.sol";
 import {MockBasejumpEmitter} from "./mocks/MockBasejumpEmitter.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
@@ -22,6 +22,8 @@ abstract contract ForwarderFixture is Test {
     address internal relayer = makeAddr("relayer");
     address internal refundAddress = makeAddr("refund");
     address internal stranger = makeAddr("stranger");
+    address internal otherChainBridge = makeAddr("bridge on another chain");
+    uint256 internal constant OTHER_CHAIN = 84532;
 
     DepositForwarderFactory internal factory;
     MockERC20 internal usdc;
@@ -31,21 +33,31 @@ abstract contract ForwarderFixture is Test {
     MockGateway internal gateway;
 
     function setUp() public virtual {
-        factory = new DepositForwarderFactory(owner);
         usdc = new MockERC20("USDC");
         usdt = new MockTether();
         emitter = new MockBasejumpEmitter();
         vault = new MockPsmVault(usdc, PSM_MESSAGE_FEE);
         gateway = new MockGateway();
-
-        vm.startPrank(owner);
-        factory.setRelayer(relayer);
-        factory.configureBasejump(address(emitter), address(usdc));
-        factory.configurePsm(address(vault), address(usdc));
-        factory.configureSnowbridge(address(gateway), address(usdt), xcmTemplate(), claimerTemplate());
-        vm.stopPrank();
+        factory = new DepositForwarderFactory(owner, relayer, allChains());
 
         vm.deal(relayer, 10 ether);
+    }
+
+    /// @dev This chain's routes plus another chain's, which name a bridge that must never be used here.
+    function allChains() internal view returns (ChainRoutes[] memory chains) {
+        chains = new ChainRoutes[](2);
+        chains[0] = thisChain();
+        chains[1].chainId = OTHER_CHAIN;
+        chains[1].basejump = RouteConfig(otherChainBridge, address(usdc));
+    }
+
+    function thisChain() internal view returns (ChainRoutes memory routes) {
+        routes.chainId = block.chainid;
+        routes.basejump = RouteConfig(address(emitter), address(usdc));
+        routes.psm = RouteConfig(address(vault), address(usdc));
+        routes.snowbridge = RouteConfig(address(gateway), address(usdt));
+        routes.snowbridgeXcm = xcmTemplate();
+        routes.snowbridgeClaimer = claimerTemplate();
     }
 
     function defaultParams() internal view returns (Params memory) {

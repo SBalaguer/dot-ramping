@@ -1,3 +1,4 @@
+import type { BoundTemplate } from "@onramp/contracts";
 import { size, type Hex } from "viem";
 
 /** Stand-in for the beneficiary account in template bytes; must match `BeneficiaryTemplate.PLACEHOLDER`. */
@@ -8,12 +9,6 @@ const WORD = 32;
 
 /** Position of byte `offset` in a 0x-prefixed hex string. */
 const hexIndex = (offset: number): number => 2 + 2 * offset;
-
-/** Mirrors the Solidity `BoundTemplate` struct. */
-export interface BoundTemplate {
-  data: Hex;
-  offsets: bigint[];
-}
 
 export function fillTemplate(template: BoundTemplate, beneficiary: Hex): Hex {
   if (size(beneficiary) !== WORD) throw new RangeError("beneficiary must be 32 bytes");

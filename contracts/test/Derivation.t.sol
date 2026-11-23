@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import {Test} from "forge-std/Test.sol";
 
 import {DepositForwarderFactory} from "../src/DepositForwarderFactory.sol";
-import {Params} from "../src/ForwarderTypes.sol";
+import {ChainRoutes, Params} from "../src/ForwarderTypes.sol";
 
 /// @dev The vectors are written by `packages/keys/test/forwarder.test.ts`; both languages must agree on them.
 contract DerivationTest is Test {
@@ -15,7 +15,8 @@ contract DerivationTest is Test {
         string memory json = vm.readFile("test/fixtures/derivation.json");
 
         vm.prank(FIXTURE_DEPLOYER);
-        DepositForwarderFactory factory = new DepositForwarderFactory(address(this));
+        DepositForwarderFactory factory =
+            new DepositForwarderFactory(address(this), address(this), new ChainRoutes[](0));
         assertEq(address(factory), vm.parseJsonAddress(json, ".factory"), "fixture factory address");
         assertEq(factory.implementation(), vm.parseJsonAddress(json, ".implementation"), "implementation");
 

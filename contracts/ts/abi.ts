@@ -3,28 +3,29 @@ import { parseAbi } from "viem";
 const structs = [
   "struct Params { bytes32 id; bytes32 entropy; bytes32 beneficiary; address refund; uint8 routeMask; }",
   "struct BoundTemplate { bytes data; uint256[] offsets; }",
+  "struct RouteConfig { address bridge; address token; }",
+  "struct ChainRoutes { uint256 chainId; RouteConfig basejump; RouteConfig psm; RouteConfig snowbridge; BoundTemplate snowbridgeXcm; BoundTemplate snowbridgeClaimer; }",
 ] as const;
 
 export const factoryAbi = parseAbi([
   ...structs,
-  "constructor(address owner_)",
+  "constructor(address owner_, address relayer_, ChainRoutes[] chains)",
   "function implementation() view returns (address)",
+  "function owner() view returns (address)",
   "function relayer() view returns (address)",
   "function saltOf(Params params) pure returns (bytes32)",
   "function predict(Params params) view returns (address)",
   "function routeConfig(uint8 route) view returns (address bridge, address token)",
+  "function snowbridgeTemplates() view returns (BoundTemplate xcm, BoundTemplate claimer)",
   "function deployAndForward(Params params, uint8 route, bytes routeArgs) payable returns (address forwarder)",
   "function forward(Params params, uint8 route, bytes routeArgs) payable",
   "function refund(Params params, address token)",
   "function setRelayer(address relayer_)",
-  "function configureBasejump(address emitter, address token)",
-  "function configurePsm(address vault, address token)",
-  "function configureSnowbridge(address gateway, address token, BoundTemplate xcm, BoundTemplate claimer)",
   "event ForwarderDeployed(address indexed forwarder, bytes32 indexed id, bytes32 indexed beneficiary)",
   "event RouteConfigured(uint8 indexed route, address bridge, address token)",
+  "event RelayerChanged(address indexed relayer)",
   "error OnlyRelayer()",
   "error OnlyRelayerOrRefundAddress()",
-  "error RouteAlreadyConfigured(uint8 route)",
 ]);
 
 export const forwarderAbi = parseAbi([

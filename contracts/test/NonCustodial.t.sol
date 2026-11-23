@@ -5,12 +5,13 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import {DepositForwarder} from "../src/DepositForwarder.sol";
 import {DepositForwarderFactory} from "../src/DepositForwarderFactory.sol";
-import {Params, Route} from "../src/ForwarderTypes.sol";
+import {ChainRoutes, Params, Route} from "../src/ForwarderTypes.sol";
 import {BeneficiaryTemplate, BoundTemplate} from "../src/lib/BeneficiaryTemplate.sol";
 import {ForwarderFixture} from "./ForwarderFixture.sol";
+import {MockERC20} from "./mocks/MockERC20.sol";
 
-/// @notice Whatever the relayer, the owner's configured bridges aside, or a stranger does, a deposit can only
-///         leave towards the beneficiary or the refund address its deposit address commits to.
+/// @notice Whatever the relayer, the owner or a stranger does, a deposit can only leave towards the beneficiary
+///         or the refund address its deposit address commits to, over a route fixed when the factory was built.
 contract NonCustodialTest is ForwarderFixture {
     uint256 private constant DEPOSIT = 120e6;
 
@@ -152,7 +153,94 @@ contract NonCustodialTest is ForwarderFixture {
         factory.refund(params, address(usdc));
     }
 
-    // ─── Triggering and configuration ────────────────────────────
+    function test_refund_coversAnyTokenNotOnlyTheRouteToken() public {
+        MockERC20 stray = new MockERC20("DAI");
+        stray.mint(deposit, 7e6);
+        usdt.mint(deposit, 9e6);
+
+        vm.startPrank(relayer);
+        factory.refund(params, address(stray));
+        factory.refund(params, address(usdt));
+        vm.stopPrank();
+
+        assertEq(stray.balanceOf(refundAddress), 7e6);
+        assertEq(usdt.balanceOf(refundAddress), 9e6);
+        assertEq(usdc.balanceOf(deposit), DEPOSIT, "other balances stay put");
+    }
+
+    function test_refund_stillWorksAfterAForward() public {
+        vm.prank(relayer);
+        factory.deployAndForward(params, Route.Basejump, "");
+        usdc.mint(deposit, 3e6);
+        vm.deal(deposit, 0.1 ether);
+
+        vm.startPrank(relayer);
+        factory.refund(params, address(usdc));
+        factory.refund(params, address(0));
+        vm.stopPrank();
+
+        assertEq(usdc.balanceOf(refundAddress), 3e6);
+        assertEq(refundAddress.balance, 0.1 ether);
+    }
+
+    // ─── The owner cannot redirect ───────────────────────────────
+
+    /// @dev The owner's whole reach over a pending deposit: every route setter this contract ever had is gone,
+    ///      and replacing the relayer only changes who may trigger the same bound forwarding.
+    function test_ownerCannotRedirectPendingDeposits() public {
+        bytes[3] memory removedSetters = [
+            abi.encodeWithSignature("configureBasejump(address,address)", stranger, address(usdc)),
+            abi.encodeWithSignature("configurePsm(address,address)", stranger, address(usdc)),
+            abi.encodeWithSignature(
+                "configureSnowbridge(address,address,(bytes,uint256[]),(bytes,uint256[]))",
+                stranger,
+                address(usdc),
+                xcmTemplate(),
+                claimerTemplate()
+            )
+        ];
+        vm.startPrank(owner);
+        for (uint256 i; i < removedSetters.length; ++i) {
+            (bool ok,) = address(factory).call(removedSetters[i]);
+            assertFalse(ok, "factory has no route setter");
+        }
+        factory.setRelayer(owner);
+        factory.deployAndForward(params, Route.Basejump, "");
+        vm.stopPrank();
+
+        assertEq(emitter.lastRecipient(), params.beneficiary);
+        assertEq(usdc.balanceOf(address(emitter)), DEPOSIT);
+        _assertRoute(Route.Basejump, address(emitter), address(usdc));
+        _assertRoute(Route.Psm, address(vault), address(usdc));
+        _assertRoute(Route.Snowbridge, address(gateway), address(usdt));
+    }
+
+    function test_ownerRotatesTheRelayerWithoutMovingDepositAddresses() public {
+        address replacement = makeAddr("replacement relayer");
+
+        vm.prank(owner);
+        factory.setRelayer(replacement);
+
+        assertEq(factory.predict(params), deposit);
+        vm.expectRevert(DepositForwarderFactory.OnlyRelayer.selector);
+        vm.prank(relayer);
+        factory.deployAndForward(params, Route.Basejump, "");
+
+        vm.prank(replacement);
+        factory.deployAndForward(params, Route.Basejump, "");
+        assertEq(emitter.lastRecipient(), params.beneficiary);
+    }
+
+    function test_onlyTheOwnerRotatesTheRelayer() public {
+        address[2] memory callers = [relayer, stranger];
+        for (uint256 i; i < callers.length; ++i) {
+            vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, callers[i]));
+            vm.prank(callers[i]);
+            factory.setRelayer(callers[i]);
+        }
+    }
+
+    // ─── Triggering and construction ─────────────────────────────
 
     function test_onlyTheRelayerTriggersForwarding() public {
         address[2] memory callers = [stranger, owner];
@@ -166,56 +254,69 @@ contract NonCustodialTest is ForwarderFixture {
         }
     }
 
-    function test_routeConfigIsFixedOnceSet() public {
-        vm.startPrank(owner);
-        vm.expectRevert(abi.encodeWithSelector(DepositForwarderFactory.RouteAlreadyConfigured.selector, Route.Basejump));
-        factory.configureBasejump(stranger, address(usdc));
-        vm.expectRevert(abi.encodeWithSelector(DepositForwarderFactory.RouteAlreadyConfigured.selector, Route.Psm));
-        factory.configurePsm(stranger, address(usdc));
-        vm.expectRevert(
-            abi.encodeWithSelector(DepositForwarderFactory.RouteAlreadyConfigured.selector, Route.Snowbridge)
-        );
-        factory.configureSnowbridge(stranger, address(usdt), xcmTemplate(), claimerTemplate());
-        vm.stopPrank();
+    function test_factoryKeepsOnlyItsOwnChainsRoutes() public {
+        ChainRoutes[] memory chains = allChains();
+        vm.chainId(OTHER_CHAIN);
+        DepositForwarderFactory elsewhere = new DepositForwarderFactory(owner, relayer, chains);
 
-        (address bridge,) = factory.routeConfig(Route.Basejump);
-        assertEq(bridge, address(emitter));
+        (address bridge, address token) = elsewhere.routeConfig(Route.Basejump);
+        assertEq(bridge, otherChainBridge);
+        assertEq(token, address(usdc));
+        (bridge,) = elsewhere.routeConfig(Route.Snowbridge);
+        assertEq(bridge, address(0));
+        _assertRoute(Route.Basejump, address(emitter), address(usdc));
     }
 
-    function test_onlyTheOwnerConfigures() public {
-        DepositForwarderFactory fresh = new DepositForwarderFactory(owner);
-
-        vm.startPrank(relayer);
-        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, relayer));
-        fresh.configureBasejump(address(emitter), address(usdc));
-        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, relayer));
-        fresh.configureSnowbridge(address(gateway), address(usdt), xcmTemplate(), claimerTemplate());
-        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, relayer));
-        fresh.setRelayer(relayer);
-        vm.stopPrank();
-    }
-
-    function test_unconfiguredRouteCannotForward() public {
-        DepositForwarderFactory fresh = new DepositForwarderFactory(relayer);
-        usdc.mint(fresh.predict(params), DEPOSIT);
+    function test_routeWithoutConfigCannotForward() public {
+        DepositForwarderFactory bare = new DepositForwarderFactory(owner, relayer, new ChainRoutes[](0));
+        usdc.mint(bare.predict(params), DEPOSIT);
 
         vm.expectRevert(abi.encodeWithSelector(DepositForwarder.RouteNotConfigured.selector, Route.Basejump));
         vm.prank(relayer);
-        fresh.deployAndForward(params, Route.Basejump, "");
+        bare.deployAndForward(params, Route.Basejump, "");
+
+        vm.prank(relayer);
+        bare.refund(params, address(usdc));
+        assertEq(usdc.balanceOf(refundAddress), DEPOSIT, "refund needs no route");
+    }
+
+    function test_constructor_rejectsAmbiguousOrIncompleteRoutes() public {
+        ChainRoutes[] memory duplicated = new ChainRoutes[](2);
+        duplicated[0] = thisChain();
+        duplicated[1] = thisChain();
+        vm.expectRevert(abi.encodeWithSelector(DepositForwarderFactory.DuplicateChain.selector, block.chainid));
+        new DepositForwarderFactory(owner, relayer, duplicated);
+
+        ChainRoutes[] memory tokenless = new ChainRoutes[](1);
+        tokenless[0] = thisChain();
+        tokenless[0].psm.token = address(0);
+        vm.expectRevert(abi.encodeWithSelector(DepositForwarderFactory.IncompleteRoute.selector, Route.Psm));
+        new DepositForwarderFactory(owner, relayer, tokenless);
+
+        vm.expectRevert(DepositForwarderFactory.ZeroAddress.selector);
+        new DepositForwarderFactory(owner, address(0), allChains());
     }
 
     /// @dev A Snowbridge template that never names the beneficiary would send every deposit to a fixed account.
-    function test_snowbridgeTemplateMustCarryTheBeneficiary() public {
-        DepositForwarderFactory fresh = new DepositForwarderFactory(owner);
+    function test_constructor_rejectsSnowbridgeTemplateWithoutTheBeneficiary() public {
         BoundTemplate memory unbound;
         unbound.data = hex"05040d010000010100";
 
+        ChainRoutes[] memory chains = new ChainRoutes[](1);
+        chains[0] = thisChain();
+        chains[0].snowbridgeXcm = unbound;
         vm.expectRevert(BeneficiaryTemplate.NoBeneficiarySlot.selector);
-        vm.prank(owner);
-        fresh.configureSnowbridge(address(gateway), address(usdt), unbound, claimerTemplate());
+        new DepositForwarderFactory(owner, relayer, chains);
 
+        chains[0] = thisChain();
+        chains[0].snowbridgeClaimer = unbound;
         vm.expectRevert(BeneficiaryTemplate.NoBeneficiarySlot.selector);
-        vm.prank(owner);
-        fresh.configureSnowbridge(address(gateway), address(usdt), xcmTemplate(), unbound);
+        new DepositForwarderFactory(owner, relayer, chains);
+    }
+
+    function _assertRoute(Route route, address bridge, address token) private view {
+        (address actualBridge, address actualToken) = factory.routeConfig(route);
+        assertEq(actualBridge, bridge);
+        assertEq(actualToken, token);
     }
 }

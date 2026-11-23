@@ -29,4 +29,18 @@ describe("hand-written ABIs", () => {
     const compiled = new Set(signatures(loadArtifact(contract).abi));
     for (const signature of signatures(abi)) expect(compiled).toContain(signature);
   });
+
+  // A new setter or sweep would widen what the owner or relayer can do to a pending deposit.
+  it.each([
+    [
+      "DepositForwarderFactory",
+      ["deployAndForward", "forward", "refund", "renounceOwnership", "setRelayer", "transferOwnership"],
+    ],
+    ["DepositForwarder", ["forward", "initialize", "refund"]],
+  ])("%s exposes no state-changing function beyond the reviewed set", (contract, reviewed) => {
+    const stateChanging = loadArtifact(contract).abi.flatMap((item) =>
+      item.type === "function" && item.stateMutability !== "view" && item.stateMutability !== "pure" ? [item.name] : [],
+    );
+    expect(stateChanging.sort()).toEqual(reviewed);
+  });
 });
