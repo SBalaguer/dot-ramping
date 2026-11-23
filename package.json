@@ -9,13 +9,16 @@
   },
   "scripts": {
     "test": "vitest run --passWithNoTests",
-    "typecheck": "tsc -p forks/tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json && tsc -p forks/tsconfig.json && tsc -p packages/chains/tsconfig.json",
     "forks:up": "pnpm -F @onramp/forks run up",
     "forks:down": "pnpm -F @onramp/forks run down",
-    "check:forks": "pnpm -F @onramp/forks run check"
+    "check:forks": "pnpm -F @onramp/forks run check",
+    "check:env": "tsx --env-file-if-exists=.env scripts/check-env.ts"
   },
   "dependencies": {
     "@galacticcouncil/descriptors": "2.7.0",
+    "@onramp/chains": "workspace:*",
+    "@onramp/forks": "workspace:*",
     "polkadot-api": "^2.2.2",
     "viem": "^2.58.4"
   },

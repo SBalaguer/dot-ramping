@@ -35,4 +35,5 @@ Write like a seasoned open-source maintainer whose code gets reviewed by strange
 - `pnpm forks:up` / `pnpm forks:down`
 - `pnpm relayer:dev` · `pnpm web:dev`
 - `pnpm demo:w-eth` · `pnpm demo:w-base` · `pnpm demo:s-eth`
+- `pnpm check:env` · `pnpm check:forks`
 - `pnpm funding:report`

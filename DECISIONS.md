@@ -56,3 +56,18 @@ Each entry: date, what, why, how to revert.
   `PolkadotXcm.transfer_assets_using_type_and_then` executed by both runtimes.
 - **Why:** Dev accounts hold nothing on mainnet state.
 - **Revert:** not applicable; fork-only.
+
+## 2026-11-23 — Foundry installed with Homebrew
+
+- **What:** `brew install foundry` (forge/anvil 1.10.0) on the owner's machine.
+- **Why:** M0 needs anvil for the Ethereum mainnet fork and no Foundry was installed. Homebrew leaves the
+  shell profile untouched, unlike `foundryup`.
+- **Revert:** `brew uninstall foundry`.
+
+## 2026-11-23 — Ethereum fork source: drpc public RPC, pinned at block 26,478,800
+
+- **What:** `ETH_MAINNET_RPC` defaults to `https://eth.drpc.org`; anvil forks mainnet at #26,478,800
+  (`ETH_FORK_BLOCK`). The Gateway address comes from `@snowbridge/registry` (`polkadot_mainnet`).
+- **Why:** A pinned fork needs archive state. `ethereum-rpc.publicnode.com` refuses archive requests without
+  a token; drpc's keyless endpoint serves them but is rate-limited and comes with no guarantee.
+- **Revert:** set `ETH_MAINNET_RPC` to a keyed archive endpoint in `.env`; move the pin with `ETH_FORK_BLOCK`.
