@@ -8,8 +8,12 @@
     "node": "26.x"
   },
   "scripts": {
-    "test": "vitest run --passWithNoTests",
-    "typecheck": "tsc -p tsconfig.json && tsc -p forks/tsconfig.json && tsc -p packages/chains/tsconfig.json",
+    "bootstrap": "pnpm -F @onramp/contracts run deps && pnpm whm:build",
+    "whm:build": "cd third_party/whm/contracts && forge soldeer install && git checkout -- soldeer.lock && forge build",
+    "lint": "eslint . && prettier --check . && pnpm -F @onramp/contracts run lint",
+    "format": "prettier --write . && forge fmt --root contracts",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "pnpm lint && pnpm typecheck && vitest run --passWithNoTests && pnpm -F @onramp/contracts run test",
     "forks:up": "pnpm -F @onramp/forks run up",
     "forks:down": "pnpm -F @onramp/forks run down",
     "check:forks": "pnpm -F @onramp/forks run check",
@@ -24,9 +28,13 @@
     "viem": "^2.58.4"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^26.6.6",
+    "eslint": "^10.15.0",
+    "prettier": "^3.10.1",
     "tsx": "^4.23.15",
     "typescript": "^5.7.2",
+    "typescript-eslint": "^8.73.0",
     "vitest": "^5.1.1"
   },
   "pnpm": {

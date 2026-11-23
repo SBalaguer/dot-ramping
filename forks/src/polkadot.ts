@@ -9,10 +9,7 @@ import { assetHub, hydration, type ForkSpec } from "./specs";
 
 const CACHE_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "../.cache");
 
-export interface PolkadotForks {
-  hydration: Network;
-  assetHub: Network;
-}
+export type PolkadotForks = Record<"hydration" | "assetHub", Network>;
 
 /**
  * whm's `spawn` takes the pinned block and state cache from the environment, read at call time.

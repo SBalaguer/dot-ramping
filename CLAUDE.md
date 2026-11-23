@@ -31,7 +31,8 @@ Write like a seasoned open-source maintainer whose code gets reviewed by strange
 - Stuck more than an hour: log attempts in `DECISIONS.md`, take the documented fallback, move on.
 - `third_party/whm` is Hydration's MIT code, used read-only. Deploy our own instances; don't edit their files.
 ## Commands (keep this updated as the repo grows)
-- `pnpm install` · `pnpm test` · `pnpm -F contracts test` (forge)
+- `pnpm install` · `pnpm bootstrap` (Solidity deps, whm build) · `pnpm test` (lint, typecheck, vitest, forge) · `pnpm -F contracts test` (forge)
+- `pnpm lint` · `pnpm format` · `pnpm typecheck` · `pnpm whm:build`
 - `pnpm forks:up` / `pnpm forks:down`
 - `pnpm relayer:dev` · `pnpm web:dev`
 - `pnpm demo:w-eth` · `pnpm demo:w-base` · `pnpm demo:s-eth`

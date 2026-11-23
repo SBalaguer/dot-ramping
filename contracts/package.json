@@ -2,5 +2,10 @@
   "name": "@onramp/contracts",
   "version": "0.0.0",
   "private": true,
-  "type": "module"
+  "scripts": {
+    "deps": "forge soldeer install",
+    "build": "forge build",
+    "test": "forge test",
+    "lint": "forge fmt --check"
+  }
 }

@@ -53,9 +53,7 @@ function usdtTransferToAssetHub(forks: PolkadotForks, beneficiary: Uint8Array) {
         assets: XcmV5AssetFilter.Wild(XcmV5WildAsset.AllCounted(1)),
         beneficiary: {
           parents: 0,
-          interior: XcmV5Junctions.X1(
-            XcmV5Junction.AccountId32({ network: undefined, id: Binary.toHex(beneficiary) }),
-          ),
+          interior: XcmV5Junctions.X1(XcmV5Junction.AccountId32({ network: undefined, id: Binary.toHex(beneficiary) })),
         },
       }),
     ]),

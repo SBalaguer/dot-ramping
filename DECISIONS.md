@@ -152,3 +152,11 @@ Each entry: date, what, why, how to revert.
   in `EVMAccounts.ContractDeployer` with `dev_setStorage` before it deploys a probe contract.
 - **Why:** Hydration charges EVM gas in WETH and gates CREATE on the deployer whitelist.
 - **Revert:** not applicable; fork-only.
+
+## 2026-11-23 — whm build restores `soldeer.lock`
+
+- **What:** `pnpm whm:build` runs `forge soldeer install` and `forge build` inside `third_party/whm/contracts`,
+  then `git checkout -- soldeer.lock` in the submodule.
+- **Why:** Foundry 1.10's soldeer rewrites the lock file with a `version = 2` header. whm's files must stay
+  untouched; dependencies and build output land in directories whm already gitignores.
+- **Revert:** drop the checkout once whm commits a version 2 lock file.

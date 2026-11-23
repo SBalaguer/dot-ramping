@@ -1,4 +1,12 @@
 {
   "extends": "./tsconfig.base.json",
-  "include": ["scripts/**/*.ts"]
+  "include": [
+    "*.ts",
+    "scripts/**/*.ts",
+    "packages/*/src/**/*.ts",
+    "packages/*/test/**/*.ts",
+    "forks/src/**/*.ts",
+    "relayer/src/**/*.ts",
+    "relayer/test/**/*.ts"
+  ]
 }
