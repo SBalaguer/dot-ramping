@@ -207,3 +207,58 @@ Each entry: date, what, why, how to revert.
   the same vectors. The XCM fixture is encoded with Asset Hub's own `PolkadotXcm.send` argument codec.
 - **Solidity toolchain.** solc 0.8.34, EVM version cancun, dependencies through soldeer
   (forge-std 1.14.0, OpenZeppelin 5.5.0, the versions whm uses).
+
+## 2026-11-23 — Routes are fixed when the factory is constructed
+
+- **What:** The factory has no route setters any more. Its constructor takes the routes of every chain
+  (`ChainRoutes[]`: bridge and token per route, plus the Snowbridge templates), keeps the entry matching
+  `block.chainid`, and stores bridges and tokens as immutables. This supersedes the set-once `configure*`
+  functions of the M2 entry.
+- **Why (owner direction):** with set-once setters the owner could still configure a route that had been left
+  empty and point it at any bridge, redirecting pending deposits whose mask allowed that route. Now nothing
+  the owner can call changes where a route leads; `test_ownerCannotRedirectPendingDeposits` and the ABI
+  surface test in `contracts/ts/test/abi.test.ts` pin that down.
+- **Same address on every chain:** the list covers all chains, so the creation code, and with it the CREATE2
+  address, is identical on Sepolia, Base Sepolia and the mainnet fork (HANDOFF §5). The factory address is a
+  hash over the whole route configuration, so a deposit address already commits to its routes indirectly.
+- **Limits:**
+  - Adding or changing a route on any chain needs a new factory, which means new deposit addresses
+    everywhere. In this POC that happens at each of M4, M5 and M6 as the routes come online; forwarders of an
+    older factory keep working with the routes they were created with.
+  - Trust in the route configuration sits with whoever deployed the factory: they chose the bridges, tokens
+    and Snowbridge templates. It is verifiable (recompute the address from the configuration) but not
+    enforced per deposit.
+- **Production plan (owner):** commit a hash of the route configuration into the forwarder salt, so each
+  deposit address is tied to the exact routes it was created with, independent of the factory.
+- **Revert:** not intended.
+
+## 2026-11-23 — Owner and relayer are separate keys
+
+- **What:** The constructor takes `owner` and `relayer`. The owner's only function is `setRelayer` (plus
+  Ownable's ownership transfer); the relayer triggers forwarding and refunds. Rotating the relayer changes
+  neither the factory address nor any deposit address. `.env` gains `OWNER_EVM_PK`; only its address is used
+  at deployment, and any funded account can send the deployment transaction.
+- **Why (owner direction):** the hot relayer key should be replaceable without touching deposits.
+- **Revert:** not intended.
+
+## 2026-11-23 — Refund address is a per-top-up EVM key derived from the seed
+
+- **What:** `refund = address(secp256k1 key blake2b-256("dep-poc/evm" || seed))`, derived in
+  `packages/keys` (`deriveRefundAccount`, `topUpParams`). `REFUND_ADDRESS` is gone from the configuration;
+  HANDOFF §6 had it as a dev EOA from config. `refund` stays callable by the relayer or that address, pays
+  only that address, and works for any ERC-20 and for ether.
+- **Why (owner direction):** the app holds the refund key for every top-up, so a refund never needs a
+  user-supplied address, and the key can be exported to the user.
+- **One-way:** the EVM key is a hash of the seed. Knowing it reveals neither the seed nor the Asset Hub key,
+  which is the seed used directly as an sr25519 mini-secret.
+- **Gas:** the derived address holds no ether, so in practice the relayer sends the refund transaction and
+  pays for it; the refunded tokens then sit at an address only the key holder can move, and moving them
+  needs gas there.
+- **Revert:** pass a different `refund` when building `ForwarderParams`.
+
+## 2026-11-23 — Ethereum fork source comes from `.env` only
+
+- **What:** `ETH_MAINNET_RPC` has no default any more; the owner's keyed archive endpoint in `.env` replaces
+  the dRPC public endpoint. `pnpm forks:up` and `pnpm check:env` fail with a clear message without it.
+- **Why (owner direction).**
+- **Revert:** set `ETH_MAINNET_RPC` to any archive-capable endpoint.

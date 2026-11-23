@@ -25,7 +25,7 @@ export const assetHub: ForkSpec = {
 
 export interface EthereumForkSpec {
   /** Archive-capable Ethereum mainnet RPC the fork reads from. */
-  sourceRpc: string;
+  sourceRpc: string | undefined;
   block: number;
   /** URL anvil serves; its port is the port anvil listens on. */
   url: string;
