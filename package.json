@@ -30,12 +30,10 @@
     "vitest": "^5.1.1"
   },
   "pnpm": {
+    "overrides": {
+      "@galacticcouncil/chopsticks": "2.3.0"
+    },
     "packageExtensions": {
-      "@galacticcouncil/chopsticks@2.0.0": {
-        "dependencies": {
-          "@acala-network/chopsticks-db": "npm:@galacticcouncil/chopsticks-db@2.0.0"
-        }
-      },
       "@polkadot-api/json-rpc-provider-proxy": {
         "dependencies": {
           "@polkadot-api/json-rpc-provider": "0.2.0"

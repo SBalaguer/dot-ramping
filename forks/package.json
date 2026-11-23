@@ -9,10 +9,10 @@
   "scripts": {
     "up": "tsx --env-file-if-exists=../.env src/up.ts",
     "down": "tsx src/down.ts",
-    "check": "tsx --env-file-if-exists=../.env src/check-hrmp.ts"
+    "check": "tsx --env-file-if-exists=../.env src/check.ts"
   },
   "dependencies": {
-    "@galacticcouncil/chopsticks": "2.0.0",
+    "@galacticcouncil/chopsticks": "2.3.0",
     "@galacticcouncil/descriptors": "2.7.0",
     "@onramp/chains": "workspace:*",
     "@polkadot-labs/hdkd": "^0.0.32",

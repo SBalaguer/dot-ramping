@@ -2,10 +2,8 @@ import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { BuildBlockMode, connectParachains, setupWithServer } from "@galacticcouncil/chopsticks";
-import type { Network } from "@whm/chopsticks";
-import { createClient } from "polkadot-api";
-import { getWsProvider } from "polkadot-api/ws";
+import { connectParachains } from "@galacticcouncil/chopsticks";
+import { spawn, type Network } from "@whm/chopsticks";
 
 import { assetHub, hydration, type ForkSpec } from "./specs";
 
@@ -16,29 +14,18 @@ export interface PolkadotForks {
   assetHub: Network;
 }
 
-/** Manual block mode: every block is built explicitly, so reads at the returned hash never race a sealer. */
-async function spawnFork(spec: ForkSpec): Promise<Network> {
+/**
+ * whm's `spawn` takes the pinned block and state cache from the environment, read at call time.
+ * Instant mode seals a block per submitted transaction or inbound HRMP message, so external clients
+ * see the fork behave like a live chain.
+ */
+async function spawnPinned(spec: ForkSpec): Promise<Network> {
   mkdirSync(CACHE_DIR, { recursive: true });
-  const { chain, addr, close } = await setupWithServer({
-    endpoint: spec.endpoint,
-    port: spec.port,
-    block: spec.block,
-    db: resolve(CACHE_DIR, `${spec.key}-${spec.block}.sqlite`),
-    "mock-signature-host": true,
-    "build-block-mode": BuildBlockMode.Manual,
-    "runtime-log-level": Number(process.env.RUNTIME_LOG_LEVEL ?? 0),
-  });
-
-  const url = `ws://127.0.0.1:${addr.split(":").pop()}`;
-  const client = createClient(getWsProvider(url));
-  const newBlock = (transactions?: string[]): Promise<string> =>
-    client._request("dev_newBlock", [transactions ? { transactions } : {}]);
-  const setStorage = (values: unknown): Promise<unknown> =>
-    client._request("dev_setStorage", [
-      JSON.parse(JSON.stringify(values, (_key, v) => (typeof v === "bigint" ? v.toString() : v))),
-    ]);
-
-  return { spec, chain, client, url, newBlock, setStorage, close };
+  process.env.CHOPSTICKS_BLOCK = String(spec.block);
+  process.env.CHOPSTICKS_DB = resolve(CACHE_DIR, `${spec.key}-${spec.block}.sqlite`);
+  const net = await spawn(spec);
+  await net.client._request("dev_setBlockBuildMode", ["Instant"]);
+  return net;
 }
 
 export async function teardownPolkadotForks(forks: Partial<PolkadotForks>): Promise<void> {
@@ -52,8 +39,8 @@ export async function teardownPolkadotForks(forks: Partial<PolkadotForks>): Prom
 export async function spawnPolkadotForks(): Promise<PolkadotForks> {
   const forks: Partial<PolkadotForks> = {};
   try {
-    forks.hydration = await spawnFork(hydration);
-    forks.assetHub = await spawnFork(assetHub);
+    forks.hydration = await spawnPinned(hydration);
+    forks.assetHub = await spawnPinned(assetHub);
     await connectParachains([forks.hydration.chain, forks.assetHub.chain]);
     return forks as PolkadotForks;
   } catch (err) {

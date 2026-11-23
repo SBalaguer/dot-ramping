@@ -11,6 +11,9 @@ export const hydration: ForkSpec = {
   block: Number(process.env.HYDRATION_FORK_BLOCK || 17_352_800),
 };
 
+/** chopsticks serves Hydration's eth JSON-RPC on the same port as the Substrate RPC. */
+export const hydrationEvmRpc = `http://127.0.0.1:${hydration.port}`;
+
 export const assetHub: ForkSpec = {
   key: "assetHub",
   name: "Asset Hub",

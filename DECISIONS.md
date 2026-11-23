@@ -98,3 +98,41 @@ Each entry: date, what, why, how to revert.
   - Sepolia and Base Sepolia Wormhole cores charge a 0 wei message fee and use guardian set #0 with the
     single testnet guardian `0x13947Bd48b18E53fdAeEe77F3473391aC727C638`.
   - Hydration → Asset Hub USDT transfer costs 0.000591 USDT in XCM fees on the forks.
+
+## 2026-11-23 — Fork writes: chopsticks 2.3.0 serves `eth_sendRawTransaction`; no fork gateway
+
+- **What:** A workspace-wide pnpm override moves `@galacticcouncil/chopsticks` from whm's pinned 2.0.0 to
+  2.3.0. Both forks run in Instant block mode (`dev_setBlockBuildMode`). The relayer will reach the Hydration
+  fork only through its RPC endpoints (`ws://127.0.0.1:8061` for Substrate, `http://127.0.0.1:8061` for eth),
+  like a live chain, and never owns the fork process. No fork-gateway process is built.
+- **Why:** 2.3.0 adds `eth_sendRawTransaction`, `eth_getTransactionReceipt` and `eth_getLogs`, and fixes
+  `eth_getTransactionCount`. `pnpm check:forks` proves it from the outside: a viem wallet deploys a contract
+  through the eth RPC and reads its receipt, and a PAPI `signAndSubmit` on Hydration is delivered to Asset
+  Hub over HRMP with no fork-side block building. This supersedes the 2.0.0 pin and HANDOFF §15.1.
+  `polkadot-api` 2.x and descriptors 2.7.0 still match whm.
+- **Known limit:** a transaction sent with viem's default gas and fee estimation was dropped at apply
+  (`outcome.isErr`); with an explicit gas limit both legacy and EIP-1559 transactions succeed. To be pinned
+  down in M3. The first block of a cold fork takes 20–80 s.
+- **Revert:** remove the `pnpm.overrides` entry and the `dev_setBlockBuildMode` call; EVM writes then need
+  whm's in-process `sendRawEthTx` again, which would require a gateway process in front of the forks.
+
+## 2026-11-23 — whm TypeScript is imported from the submodule, never copied
+
+- **What:** `forks/src/polkadot.ts` now calls whm's exported `spawn` (pinned block and cache passed through
+  the `CHOPSTICKS_BLOCK` / `CHOPSTICKS_DB` environment variables it reads) instead of carrying its own copy of
+  that function. This supersedes the "Own fork spawner" entry. Our `truncatedAccount` helper in
+  `forks/src/checks/evm-write.ts` is not a copy: whm's README lists `truncatedEvmAccount` as an export, but
+  the library does not export it.
+- **Licence:** whm has no LICENSE file and no licence field in any `package.json`. Only the Solidity sources
+  carry `SPDX-License-Identifier: MIT`; the TypeScript under `chopsticks/`, `common/` and `migrations/` has no
+  licence statement at all. Until Hydration adds one, their TypeScript stays referenced through the submodule
+  and their contracts are compiled from it unmodified. Ask Hydration for a top-level LICENSE before any
+  production use.
+- **Revert:** not applicable.
+
+## 2026-11-23 — Owner directions after M0
+
+- M3 additionally dry-runs whether Hydration's XCM `ExchangeAsset` routes USDT.sb (1000767) to USDT (10) on
+  the fork, and reports the result; it decides the S-ETH design (HANDOFF §8.3, §16).
+- `ETH_MAINNET_RPC` stays on dRPC's keyless endpoint; raise it again before M6.
+- M4: the Sepolia NTT manager needs a peer registered for Wormhole chain 73 before `transfer()` works.

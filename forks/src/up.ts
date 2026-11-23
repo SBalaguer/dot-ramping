@@ -13,7 +13,7 @@ writeFileSync(PID_FILE, String(process.pid));
 
 console.log(`${"Ethereum".padEnd(10)} ${ethereum.url}  (forked at #${ethereum.spec.block})`);
 for (const net of Object.values(polkadot)) {
-  console.log(`${net.spec.name.padEnd(10)} ${net.url}  (forked at #${net.chain.head.number})`);
+  console.log(`${net.spec.name.padEnd(10)} ws://127.0.0.1:${net.spec.port}  (forked at #${net.chain.head.number})`);
 }
 console.log("Forks ready. Ctrl-C or `pnpm forks:down` to stop.");
 

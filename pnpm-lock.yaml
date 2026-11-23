@@ -4,7 +4,10 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-packageExtensionsChecksum: ef491ea00e9777d4d0d503e9b48176e8
+overrides:
+  '@galacticcouncil/chopsticks': 2.3.0
+
+packageExtensionsChecksum: 298a33d08d1e6d2a578944067a1ff5f9
 
 importers:
 
@@ -44,8 +47,8 @@ importers:
   forks:
     dependencies:
       '@galacticcouncil/chopsticks':
-        specifier: 2.0.0
-        version: 2.0.0
+        specifier: 2.3.0
+        version: 2.3.0(typescript@6.0.3)
       '@galacticcouncil/descriptors':
         specifier: 2.7.0
         version: 2.7.0
@@ -83,8 +86,8 @@ importers:
   third_party/whm/chopsticks:
     dependencies:
       '@galacticcouncil/chopsticks':
-        specifier: 2.0.0
-        version: 2.0.0
+        specifier: 2.3.0
+        version: 2.3.0(typescript@6.0.3)
 
   web: {}
 
@@ -277,16 +280,16 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@galacticcouncil/chopsticks-core@2.0.0':
-    resolution: {integrity: sha512-Shfsc0ybCftI6kadNE/FyqKMP9WqkmjFhxHTqgpopXGkhPBsVGffW6IPtcekKlDsDGWgOBd3dQwApdsKE+XLxA==}
+  '@galacticcouncil/chopsticks-core@2.3.0':
+    resolution: {integrity: sha512-tmuXM7NSrX76xSG7W5Qzf3zSlNhnzoLI5cRL6PG65dKWgEK+JOwf/zUOs0C+M5hDBYvRCv99E0817dgnzowZag==}
     engines: {node: '>=v22'}
 
-  '@galacticcouncil/chopsticks-db@2.0.0':
-    resolution: {integrity: sha512-fpOggpcwxnsClauqZybv2Xcj2rAw1m9e0l7+JoMNdxJSzN1qpr2QANLJzSb0icuvLh72pdeMN8bpfgz0PB3QeQ==}
+  '@galacticcouncil/chopsticks-db@2.3.0':
+    resolution: {integrity: sha512-yvd0fXOhlNGe9vdTFN0Gc2sDTNrM1/oX6kmlAJY00NBTOehK+K+uOeciln+iIujWo4S2LIc5YRlbI2c22ZZmAQ==}
     engines: {node: '>=v22'}
 
-  '@galacticcouncil/chopsticks@2.0.0':
-    resolution: {integrity: sha512-MubP+VK6P5apYI5LJa8GiF4IUhCdvDQKrELvJWvMUTE1rmPEhbbc0D4YdLUdi6EUVNMdAYBJdei1JOgtFLLiLw==}
+  '@galacticcouncil/chopsticks@2.3.0':
+    resolution: {integrity: sha512-IGcpXqA9JdxfHE8bxAEni1CybRpDzsBpMm4L02A1da+x3YqP8EWuXsE/8akeLCd6xVXiwLU/WlTXOuM+bzHhCw==}
     engines: {node: '>=v22'}
     hasBin: true
 
@@ -2493,7 +2496,7 @@ snapshots:
   '@esbuild/win32-x64@0.28.2':
     optional: true
 
-  '@galacticcouncil/chopsticks-core@2.0.0':
+  '@galacticcouncil/chopsticks-core@2.3.0(typescript@6.0.3)':
     dependencies:
       '@acala-network/chopsticks-executor': 1.6.4
       '@polkadot/rpc-provider': 16.5.6
@@ -2509,15 +2512,18 @@ snapshots:
       pino: 9.14.0
       pino-pretty: 13.2.0
       rxjs: 7.8.2
+      viem: 2.58.4(typescript@6.0.3)(zod@3.25.76)
       zod: 3.25.76
     transitivePeerDependencies:
       - bufferutil
+      - mppx
       - supports-color
+      - typescript
       - utf-8-validate
 
-  '@galacticcouncil/chopsticks-db@2.0.0':
+  '@galacticcouncil/chopsticks-db@2.3.0(typescript@6.0.3)':
     dependencies:
-      '@galacticcouncil/chopsticks-core': 2.0.0
+      '@galacticcouncil/chopsticks-core': 2.3.0(typescript@6.0.3)
       '@polkadot/util': 14.0.3
       idb: 8.0.4
       reflect-metadata: 0.2.2
@@ -2531,6 +2537,7 @@ snapshots:
       - bufferutil
       - ioredis
       - mongodb
+      - mppx
       - mssql
       - mysql2
       - oracledb
@@ -2542,14 +2549,14 @@ snapshots:
       - supports-color
       - ts-node
       - typeorm-aurora-data-api-driver
+      - typescript
       - utf-8-validate
 
-  '@galacticcouncil/chopsticks@2.0.0':
+  '@galacticcouncil/chopsticks@2.3.0(typescript@6.0.3)':
     dependencies:
-      '@acala-network/chopsticks-db': '@galacticcouncil/chopsticks-db@2.0.0'
       '@dmsnell/diff-match-patch': 1.1.0
-      '@galacticcouncil/chopsticks-core': 2.0.0
-      '@galacticcouncil/chopsticks-db': 2.0.0
+      '@galacticcouncil/chopsticks-core': 2.3.0(typescript@6.0.3)
+      '@galacticcouncil/chopsticks-db': 2.3.0(typescript@6.0.3)
       '@pnpm/npm-conf': 3.0.3
       '@polkadot/api': 16.5.6
       '@polkadot/api-augment': 16.5.6
@@ -2576,6 +2583,7 @@ snapshots:
       - debug
       - ioredis
       - mongodb
+      - mppx
       - mssql
       - mysql2
       - oracledb
@@ -2587,6 +2595,7 @@ snapshots:
       - supports-color
       - ts-node
       - typeorm-aurora-data-api-driver
+      - typescript
       - utf-8-validate
 
   '@galacticcouncil/descriptors@2.7.0': {}

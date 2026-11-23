@@ -13,11 +13,11 @@ import {
   XcmVersionedLocation,
   XcmVersionedXcm,
 } from "@galacticcouncil/descriptors";
-import { checkIfExtrinsicSuccess, getEventsAt } from "@whm/chopsticks";
 import { Binary, Enum } from "polkadot-api";
 
-import { devAccount } from "./dev-accounts";
-import { spawnPolkadotForks, teardownPolkadotForks, type PolkadotForks } from "./polkadot";
+import { devAccount } from "../dev-accounts";
+import type { PolkadotForks } from "../polkadot";
+import { waitFor } from "./wait";
 
 const HYDRATION_USDT = 10;
 const ASSET_HUB_USDT = 1984;
@@ -26,9 +26,9 @@ const HDX = 10n ** 12n;
 const USDT = 10n ** 6n;
 const AMOUNT = 25n * USDT;
 
-async function usdtOnAssetHub(forks: PolkadotForks, address: string, at: string): Promise<bigint> {
+async function usdtOnAssetHub(forks: PolkadotForks, address: string): Promise<bigint> {
   const api = forks.assetHub.client.getTypedApi(hub);
-  const account = await api.query.Assets.Account.getValue(ASSET_HUB_USDT, address, { at });
+  const account = await api.query.Assets.Account.getValue(ASSET_HUB_USDT, address, { at: "best" });
   return account?.balance ?? 0n;
 }
 
@@ -63,7 +63,8 @@ function usdtTransferToAssetHub(forks: PolkadotForks, beneficiary: Uint8Array) {
   });
 }
 
-async function main(forks: PolkadotForks): Promise<void> {
+/** A signed USDT transfer submitted to Hydration arrives on Asset Hub with no fork-side help. */
+export async function checkHrmpTransfer(forks: PolkadotForks): Promise<string> {
   const alice = devAccount("//Alice");
   const bob = devAccount("//Bob");
 
@@ -72,29 +73,15 @@ async function main(forks: PolkadotForks): Promise<void> {
     Tokens: { Accounts: [[[alice.address, HYDRATION_USDT], { free: 100n * USDT }]] },
   });
 
-  const before = await usdtOnAssetHub(forks, bob.address, forks.assetHub.chain.head.hash);
-  const signed = Binary.toHex(await usdtTransferToAssetHub(forks, bob.publicKey).sign(alice.signer));
+  const before = await usdtOnAssetHub(forks, bob.address);
+  const sent = await usdtTransferToAssetHub(forks, bob.publicKey).signAndSubmit(alice.signer);
+  if (!sent.ok) throw new Error(`USDT transfer failed in Hydration block ${sent.block.hash}`);
 
-  const sent = await forks.hydration.chain.newBlock({ transactions: [signed as `0x${string}`] });
-  if (!checkIfExtrinsicSuccess(await getEventsAt(forks.hydration, sent.hash))) {
-    throw new Error(`USDT transfer failed in Hydration block ${sent.hash}`);
-  }
+  const credited = await waitFor("USDT on Asset Hub", async () => {
+    const delta = (await usdtOnAssetHub(forks, bob.address)) - before;
+    return delta > 0n ? delta : undefined;
+  });
+  if (credited > AMOUNT) throw new Error(`Asset Hub credited ${credited} for ${AMOUNT} sent`);
 
-  const received = await forks.assetHub.chain.newBlock();
-  const credited = (await usdtOnAssetHub(forks, bob.address, received.hash)) - before;
-  if (credited <= 0n || credited > AMOUNT) {
-    throw new Error(`Asset Hub credited ${credited} for ${AMOUNT} sent (block ${received.hash})`);
-  }
-
-  console.log(`Hydration #${sent.number} ${sent.hash}: sent ${AMOUNT} of asset ${HYDRATION_USDT}`);
-  console.log(`Asset Hub #${received.number} ${received.hash}: ${bob.address} +${credited} of asset ${ASSET_HUB_USDT}`);
-  console.log(`XCM fee paid in USDT: ${AMOUNT - credited}`);
+  return `Hydration #${sent.block.number} sent ${AMOUNT} of asset ${HYDRATION_USDT}; Asset Hub credited ${credited} of asset ${ASSET_HUB_USDT} (XCM fee ${AMOUNT - credited})`;
 }
-
-const forks = await spawnPolkadotForks();
-try {
-  await main(forks);
-} finally {
-  await teardownPolkadotForks(forks);
-}
-process.exit(0);
