@@ -2,5 +2,21 @@
   "name": "@onramp/forks",
   "version": "0.0.0",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "up": "tsx src/up.ts",
+    "down": "tsx src/down.ts",
+    "check": "tsx src/check-hrmp.ts"
+  },
+  "dependencies": {
+    "@galacticcouncil/chopsticks": "2.0.0",
+    "@galacticcouncil/descriptors": "2.7.0",
+    "@polkadot-labs/hdkd": "^0.0.32",
+    "@polkadot-labs/hdkd-helpers": "^0.0.34",
+    "@whm/chopsticks": "workspace:*",
+    "polkadot-api": "^2.2.2"
+  }
 }

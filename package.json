@@ -8,12 +8,35 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc -p forks/tsconfig.json",
+    "forks:up": "pnpm -F @onramp/forks run up",
+    "forks:down": "pnpm -F @onramp/forks run down",
+    "check:forks": "pnpm -F @onramp/forks run check"
+  },
+  "dependencies": {
+    "@galacticcouncil/descriptors": "2.7.0",
+    "polkadot-api": "^2.2.2",
+    "viem": "^2.58.4"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
     "tsx": "^4.23.15",
     "typescript": "^5.7.2",
     "vitest": "^5.1.1"
+  },
+  "pnpm": {
+    "packageExtensions": {
+      "@galacticcouncil/chopsticks@2.0.0": {
+        "dependencies": {
+          "@acala-network/chopsticks-db": "npm:@galacticcouncil/chopsticks-db@2.0.0"
+        }
+      },
+      "@polkadot-api/json-rpc-provider-proxy": {
+        "dependencies": {
+          "@polkadot-api/json-rpc-provider": "0.2.0"
+        }
+      }
+    }
   }
 }

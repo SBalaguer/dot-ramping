@@ -29,3 +29,30 @@ Each entry: date, what, why, how to revert.
 - **Caveat:** the repository has no top-level LICENSE file; the Basejump and PSM contracts carry
   `SPDX-License-Identifier: MIT` headers, which is what the "MIT" claim in `HANDOFF.md` rests on.
 - **Revert:** `git -C third_party/whm checkout <commit>` and commit the submodule pointer.
+
+## 2026-11-23 — polkadot-api 2.x, descriptors 2.7.0 and chopsticks 2.0.0, matching whm
+
+- **What:** The workspace pins `polkadot-api@^2.2.2`, `@galacticcouncil/descriptors@2.7.0` and
+  `@galacticcouncil/chopsticks@2.0.0` although newer releases exist (polkadot-api 3.3.0, chopsticks 2.3.0).
+  The root `package.json` declares `polkadot-api`, `viem` and the descriptors, and mirrors whm's two
+  `packageExtensions`, because `@whm/chopsticks` imports them without declaring them.
+- **Why:** `@whm/chopsticks` (`EthClient`, `sendRawEthTx`) is used read-only and is written against exactly
+  this toolchain.
+- **Revert:** bump the three versions together once whm does, then rerun `pnpm check:forks`.
+
+## 2026-11-23 — Own fork spawner instead of whm `spawnForks`
+
+- **What:** `forks/src/polkadot.ts` calls chopsticks directly and returns whm's `Network` shape, so whm's
+  EVM helpers still work on it. whm's `configs.hydration` preset is reused; the Asset Hub preset is ours.
+- **Why:** whm's `spawn` takes one `CHOPSTICKS_BLOCK` for every chain and ships no Asset Hub preset. Each
+  fork needs its own pinned block (HANDOFF §15.9): Hydration #17,352,800 and Asset Hub #23,509,300,
+  overridable with `HYDRATION_FORK_BLOCK` / `AH_FORK_BLOCK`. Fetched state is cached in `forks/.cache`.
+- **Revert:** replace `spawnPolkadotForks` with whm's `spawnForks` once it supports per-chain blocks.
+
+## 2026-11-23 — Fork setup shortcut: dev account funding in `check:forks`
+
+- **What:** `forks/src/check-hrmp.ts` gives `//Alice` 1,000 HDX and 100 USDT (asset 10) on the Hydration
+  fork with `dev_setStorage` before sending the HRMP test transfer. The transfer itself is a signed
+  `PolkadotXcm.transfer_assets_using_type_and_then` executed by both runtimes.
+- **Why:** Dev accounts hold nothing on mainnet state.
+- **Revert:** not applicable; fork-only.
