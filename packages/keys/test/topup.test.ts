@@ -1,9 +1,9 @@
 import { DEV_MINI_SECRET } from "@polkadot-labs/hdkd-helpers";
 import { sr25519CreateDerive } from "@polkadot-labs/hdkd";
-import { toHex } from "viem";
+import { recoverMessageAddress, toHex } from "viem";
 import { describe, expect, it } from "vitest";
 
-import { deriveBeneficiary, deriveSeed, newTopUpSecrets } from "../src/topup";
+import { deriveBeneficiary, deriveRefundAccount, deriveSeed, newTopUpSecrets } from "../src/topup";
 
 const ID = `0x${"11".repeat(32)}` as const;
 const ENTROPY = `0x${"22".repeat(32)}` as const;
@@ -45,6 +45,33 @@ describe("deriveBeneficiary", () => {
     const a = deriveBeneficiary({ id: ID, entropy: ENTROPY });
     const b = deriveBeneficiary({ id: ID, entropy: `0x${"23".repeat(32)}` });
     expect(a.accountId).not.toBe(b.accountId);
+  });
+});
+
+describe("deriveRefundAccount", () => {
+  it("is secp256k1 keyed by blake2b-256 over the EVM domain tag and the seed", () => {
+    // Key 0xddfe0f5f…75e1 computed with Python's hashlib, address with `cast wallet address`.
+    expect(deriveRefundAccount({ id: ID, entropy: ENTROPY }).address).toBe(
+      "0x1C5717b9643C3bF45E2fd3812A140829d2375E20",
+    );
+  });
+
+  it("can sign, so the holder of the secrets can trigger the refund", async () => {
+    const account = deriveRefundAccount({ id: ID, entropy: ENTROPY });
+    const signature = await account.signMessage({ message: "refund" });
+    expect(await recoverMessageAddress({ message: "refund", signature })).toBe(account.address);
+  });
+
+  it("shares no key material with the seed or the Asset Hub account", () => {
+    const secrets = { id: ID, entropy: ENTROPY };
+    const evmKey = "0xddfe0f5fe64483ef0ae63b6ff2624c4fbaf0da3ebb29f0d1b29fd96a471175e1";
+    expect(evmKey).not.toBe(toHex(deriveSeed(secrets)));
+    expect(toHex(sr25519CreateDerive(evmKey)("").publicKey)).not.toBe(deriveBeneficiary(secrets).accountId);
+  });
+
+  it("differs per top-up", () => {
+    const other = deriveRefundAccount({ id: ID, entropy: `0x${"23".repeat(32)}` });
+    expect(other.address).not.toBe(deriveRefundAccount({ id: ID, entropy: ENTROPY }).address);
   });
 });
 

@@ -8,6 +8,8 @@ import {
   type Hex,
 } from "viem";
 
+import { deriveBeneficiary, deriveRefundAccount, type TopUpSecrets } from "./topup";
+
 /** Mirrors the Solidity `Params` struct; every field is bound into the forwarder's CREATE2 salt. */
 export interface ForwarderParams {
   id: Hex;
@@ -15,6 +17,16 @@ export interface ForwarderParams {
   beneficiary: Hex;
   refund: Address;
   routeMask: number;
+}
+
+/** The forwarder params of a top-up: both destinations come from its secrets, none from configuration. */
+export function topUpParams(secrets: TopUpSecrets, routeMask: number): ForwarderParams {
+  return {
+    ...secrets,
+    beneficiary: deriveBeneficiary(secrets).accountId,
+    refund: deriveRefundAccount(secrets).address,
+    routeMask,
+  };
 }
 
 const PARAMS_ABI = [

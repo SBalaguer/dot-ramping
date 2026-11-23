@@ -5,8 +5,10 @@ import { blake2b256, ss58Address } from "@polkadot-labs/hdkd-helpers";
 import type { PolkadotSigner } from "polkadot-api";
 import { getPolkadotSigner } from "polkadot-api/signer";
 import { concatBytes, hexToBytes, keccak256, stringToBytes, toHex, type Hex } from "viem";
+import { privateKeyToAccount, type PrivateKeyAccount } from "viem/accounts";
 
 const SEED_DOMAIN = stringToBytes("dep-poc/seed");
+const EVM_DOMAIN = stringToBytes("dep-poc/evm");
 const POLKADOT_SS58_PREFIX = 0;
 
 /** The only secret material of a top-up; everything else is derived from it. */
@@ -44,4 +46,12 @@ export function deriveBeneficiary(secrets: TopUpSecrets): Beneficiary {
     address: ss58Address(keyPair.publicKey, POLKADOT_SS58_PREFIX),
     signer: getPolkadotSigner(keyPair.publicKey, "Sr25519", keyPair.sign),
   };
+}
+
+/**
+ * The per-top-up EVM account that refunds are paid to and that may trigger its own refund. Its key is a
+ * hash of the seed, so handing it to the user reveals neither the seed nor the Asset Hub key.
+ */
+export function deriveRefundAccount(secrets: TopUpSecrets): PrivateKeyAccount {
+  return privateKeyToAccount(toHex(blake2b256(concatBytes([EVM_DOMAIN, deriveSeed(secrets)]))));
 }

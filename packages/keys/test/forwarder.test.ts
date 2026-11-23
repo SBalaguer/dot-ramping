@@ -1,20 +1,26 @@
 import type { Address } from "viem";
 import { describe, expect, it } from "vitest";
 
-import { forwarderAddress, implementationOf, saltOf, type ForwarderParams } from "../src/forwarder";
+import { forwarderAddress, implementationOf, saltOf, topUpParams, type ForwarderParams } from "../src/forwarder";
 import { Route, isRouteAllowed, routeMask } from "../src/routes";
-import { deriveBeneficiary } from "../src/topup";
+import { deriveBeneficiary, deriveRefundAccount } from "../src/topup";
 
 const FACTORY: Address = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 const FIXTURE = "../../../contracts/test/fixtures/derivation.json";
 
 const secrets = { id: `0x${"11".repeat(32)}`, entropy: `0x${"22".repeat(32)}` } as const;
-const base: ForwarderParams = {
-  ...secrets,
-  beneficiary: deriveBeneficiary(secrets).accountId,
-  refund: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
-  routeMask: routeMask(Route.Snowbridge, Route.Basejump),
-};
+const base = topUpParams(secrets, routeMask(Route.Snowbridge, Route.Basejump));
+
+describe("topUpParams", () => {
+  it("takes both destinations from the top-up's own secrets", () => {
+    expect(base).toEqual({
+      ...secrets,
+      beneficiary: deriveBeneficiary(secrets).accountId,
+      refund: deriveRefundAccount(secrets).address,
+      routeMask: 0b011,
+    });
+  });
+});
 
 describe("forwarderAddress", () => {
   it("commits to every field of the params", () => {
