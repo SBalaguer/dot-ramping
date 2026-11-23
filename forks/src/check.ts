@@ -1,10 +1,12 @@
 import { checkEvmWrite } from "./checks/evm-write";
 import { checkHrmpTransfer } from "./checks/hrmp";
+import { checkWormholeCore } from "./checks/wormhole-core";
 import { spawnPolkadotForks, teardownPolkadotForks, type PolkadotForks } from "./polkadot";
 
 const CHECKS: [string, (forks: PolkadotForks) => Promise<string>][] = [
   ["HRMP transfer Hydration -> Asset Hub", checkHrmpTransfer],
   ["EVM write through the Hydration fork RPC", checkEvmWrite],
+  ["Wormhole core accepting testnet VAAs", checkWormholeCore],
 ];
 
 const forks = await spawnPolkadotForks();

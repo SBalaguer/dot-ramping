@@ -262,3 +262,40 @@ Each entry: date, what, why, how to revert.
   the dRPC public endpoint. `pnpm forks:up` and `pnpm check:env` fail with a clear message without it.
 - **Why (owner direction).**
 - **Revert:** set `ETH_MAINNET_RPC` to any archive-capable endpoint.
+
+## 2026-11-23 — Root cause of the dropped fork transaction: fee cap without headroom
+
+- **Finding:** it was never the gas limit. `eth_estimateGas` on the fork is exact (55,330 estimated, 55,330
+  used). Hydration recomputes its EVM base fee at the start of every block, so a transaction whose fee cap
+  equals the previous block's `eth_gasPrice` fails validation and the extrinsic is dropped; 1% above passes.
+  Live Hydration nodes report that price as the block's `baseFeePerGas` with a zero priority fee, so viem's
+  default (1.2 × base fee) has headroom. chopsticks 2.3.0 reports `baseFeePerGas = 0` and returns the whole
+  price from `eth_maxPriorityFeePerGas`, so the same default came out exactly equal to the price.
+- **What:** `packages/chains/src/hydration.ts` defines Hydration's fee policy on the chain itself: fee cap =
+  `eth_gasPrice` × viem's base-fee multiplier (1.2), priority fee 0. That is what viem computes against a live
+  node, and it is the only code path; the fork has no special case. Gas limits come from `eth_estimateGas`.
+  `pnpm check:forks` deploys a contract with nothing but defaults to guard this.
+- **Revert:** drop the `fees` block once chopsticks reports `baseFeePerGas`.
+
+## 2026-11-23 — Wormhole core on the Hydration fork: option A, bytecode taken from Sepolia
+
+- **What:** `forks/src/setup/wormhole-core.ts` deploys Wormhole's official `Implementation`, `Setup` and proxy
+  on the fork with three real transactions, initialised with the testnet guardian set read live from the
+  Sepolia core, Wormhole chain id 73 and EVM chain id 222222. The creation code is the input of the three
+  transactions with which Wormhole deployed its Sepolia core (hashes in that file); the proxy's original
+  constructor arguments are recomputed, checked against the Sepolia transaction and replaced with ours.
+- **Why:** HANDOFF §8.1 prefers a fresh official core over rewriting the guardian set of Hydration's mainnet
+  core. Reusing the deployed bytecode avoids vendoring the 150 MB wormhole repository or its compiled blobs.
+  Hydration's own core `0x3792…82A1` rejects testnet VAAs, which `pnpm check:forks` asserts.
+- **Setup shortcuts on the fork:** the deploying key gets HDX, WETH and an `EVMAccounts.ContractDeployer`
+  entry through `dev_setStorage`. Nothing in the core's storage is written directly.
+- **Lifecycle:** forks start from the pinned block every time, so `pnpm forks:up` redeploys the core with the
+  relayer key (`RELAYER_EVM_PK`) on each start.
+- **Revert:** option B, overriding `EVM.AccountStorages` of `0x3792…82A1` as whm's probes do.
+
+## 2026-11-23 — One TypeScript for the whole workspace
+
+- **What:** `pnpm.overrides` pins `typescript` to the root's version.
+- **Why:** chopsticks 2.3.0 pulled in TypeScript 6 as a peer, which gave viem two instances with
+  incompatible types across packages.
+- **Revert:** remove the override when the root moves to TypeScript 6.
