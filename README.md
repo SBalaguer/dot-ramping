@@ -20,13 +20,14 @@ cp .env.example .env    # then fill in the two testnet-only keys
 
 ## Commands
 
-| Command                             | What it does                                                                                              |
-| ----------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `pnpm test`                         | Lint, typecheck, TypeScript tests and Foundry tests                                                       |
-| `pnpm check:env`                    | Verifies the testnet RPCs, Wormhole, the CREATE2 deployer and the Snowbridge Gateway on the Ethereum fork |
-| `pnpm check:forks`                  | Spawns the Hydration and Asset Hub forks and proves HRMP delivery and EVM writes                          |
-| `pnpm forks:up` / `pnpm forks:down` | Starts and stops the Ethereum (anvil), Hydration and Asset Hub mainnet forks                              |
-| `pnpm funding:report`               | Lists the testnet funds each account still needs                                                          |
+| Command                             | What it does                                                                                               |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `pnpm test`                         | Lint, typecheck, TypeScript tests and Foundry tests                                                        |
+| `pnpm check:env`                    | Verifies the testnet RPCs, Wormhole, the CREATE2 deployer and the Snowbridge Gateway on the Ethereum fork  |
+| `pnpm check:forks`                  | Spawns the Hydration and Asset Hub forks and proves HRMP delivery, EVM writes and testnet VAA verification |
+| `pnpm forks:up` / `pnpm forks:down` | Starts and stops the Ethereum (anvil), Hydration and Asset Hub mainnet forks                               |
+| `pnpm funding:report`               | Lists the testnet funds each account still needs                                                           |
+| `pnpm probe:exchange-asset`         | Dry-runs the in-XCM USDT.sb to USDT swap on the Hydration fork                                             |
 
 ## Layout
 
