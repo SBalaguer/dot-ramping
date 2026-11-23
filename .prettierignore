@@ -1,7 +1,13 @@
 node_modules/
 pnpm-lock.yaml
 third_party/
-contracts/
+contracts/src/
+contracts/test/
+contracts/out/
+contracts/cache/
+contracts/dependencies/
+contracts/soldeer.lock
+contracts/foundry.toml
 forks/.cache/
 HANDOFF.md
 CLAUDE.md

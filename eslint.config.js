@@ -2,7 +2,16 @@ import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["**/node_modules/", "**/dist/", "third_party/", "contracts/", "forks/.cache/", "web/"] },
+  {
+    ignores: [
+      "**/node_modules/",
+      "**/dist/",
+      "third_party/",
+      "contracts/{src,test,out,cache,dependencies}/",
+      "forks/.cache/",
+      "web/",
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   {

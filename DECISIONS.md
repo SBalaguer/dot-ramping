@@ -160,3 +160,50 @@ Each entry: date, what, why, how to revert.
 - **Why:** Foundry 1.10's soldeer rewrites the lock file with a `version = 2` header. whm's files must stay
   untouched; dependencies and build output land in directories whm already gitignores.
 - **Revert:** drop the checkout once whm commits a version 2 lock file.
+
+## 2026-11-23 — M2 contract design choices
+
+- **One token per route.** `configureBasejump`, `configurePsm` and `configureSnowbridge` each bind one bridge
+  and one token, once. This keeps `deployAndForward(params, route, routeArgs)` exactly as HANDOFF §7.1 writes
+  it (`routeArgs` empty for Basejump and PSM). The Snowbridge XCM template is token-specific anyway.
+  _Revert:_ a per-route token allowlist needs a `token` argument and a template per token.
+- **Forwarder interface.** HANDOFF §7.2 sketches `execute(Route, bytes)` with stored params. The forwarder
+  instead stores only `paramsHash` (equal to its CREATE2 salt) and takes `Params` on every call, checking them
+  against the hash; it reads bridge, token and templates from the factory. One storage write per deployment.
+- **`onlyRelayer` is on** for `deployAndForward` and `forward` (HANDOFF marks it optional). A stranger could
+  otherwise pick Snowbridge with zero relayer fee and strand a deposit in transit.
+- **Refund authorisation.** HANDOFF says "always allowed" and "permissionless after a timeout". A fully
+  permissionless refund lets anyone bounce every deposit before the relayer forwards it, and a timeout needs a
+  timestamp that a plain ERC-20 transfer to a counterfactual address never records. `refund` is callable by the
+  relayer and by the bound refund address, and always pays the bound refund address. _Production question:_ a
+  refund address that cannot send transactions (an exchange) depends on the relayer; a deadline bound into the
+  salt would fix that.
+- **Ether.** Forwarders accept ether because the PSM vault returns unused message fee to its caller. Whatever
+  a bridge returns goes back to the relayer in the same call; ether that was already at the deposit address
+  stays and is refundable with `refund(params, address(0))`.
+- **Snowbridge fees** come from `routeArgs` and are only bounded by `msg.value`, as specified. A relayer can
+  therefore underpay and delay a message, but not redirect it; the claimer is the beneficiary.
+- **Template placeholder** is `0xbe…be` (32 bytes). The factory rejects a template with no slot, a slot that
+  is not the placeholder, or a placeholder missing from the offsets. The constant min-out limitation of
+  HANDOFF §7.3 will apply to the real S-ETH template built in M6.
+- **Trust point (unchanged from HANDOFF §7.1):** the factory owner picks each route's bridge, token and
+  template once. In the POC the owner and relayer are the same dev key.
+
+## 2026-11-23 — M2 layout and tooling choices
+
+- **`contracts/ts`** holds the TypeScript side of our contracts (ABIs, forge artifact loader, deterministic
+  deployment), exported as `@onramp/contracts`. HANDOFF §12 has no slot for it; it sits next to the Solidity it
+  describes. Hand-written ABIs are checked against the compiled artifacts by `contracts/ts/test/abi.test.ts`.
+- **Factory address.** Deployed through the CREATE2 deployer with a fixed salt; the owner is a constructor
+  argument, so the address depends on the owner and the creation code. `bytecode_hash = "none"` and
+  `cbor_metadata = false` keep the creation code independent of compiler metadata. The forwarder
+  implementation is created in the factory's constructor, at the factory's CREATE nonce 1.
+- **Bridge interfaces.** `IBasejumpEmitter` is imported from the whm submodule. `IHollarPsmVault` is declared
+  here because whm's `IHollarBaseVault` declares no functions, and `ISnowbridgeGatewayV2` because Snowbridge's
+  contracts are not vendored; both are single-function declarations to be exercised against the real contracts
+  in M5 and M6.
+- **Cross-language fixtures.** `contracts/test/fixtures/*.json` are written by the vitest suites
+  (`vitest -u` regenerates them) and read by the Foundry suites, so TypeScript and Solidity are tested against
+  the same vectors. The XCM fixture is encoded with Asset Hub's own `PolkadotXcm.send` argument codec.
+- **Solidity toolchain.** solc 0.8.34, EVM version cancun, dependencies through soldeer
+  (forge-std 1.14.0, OpenZeppelin 5.5.0, the versions whm uses).

@@ -54,7 +54,18 @@ importers:
         specifier: ^5.1.1
         version: 5.1.1(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15))
 
-  contracts: {}
+  contracts:
+    dependencies:
+      '@onramp/chains':
+        specifier: workspace:*
+        version: link:../packages/chains
+      viem:
+        specifier: ^2.58.4
+        version: 2.58.4(typescript@6.0.3)(zod@3.25.76)
+    devDependencies:
+      '@onramp/keys':
+        specifier: workspace:*
+        version: link:../packages/keys
 
   forks:
     dependencies:

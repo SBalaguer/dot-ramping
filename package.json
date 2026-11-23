@@ -13,7 +13,7 @@
     "lint": "eslint . && prettier --check . && pnpm -F @onramp/contracts run lint",
     "format": "prettier --write . && forge fmt --root contracts",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "pnpm lint && pnpm typecheck && vitest run --passWithNoTests && pnpm -F @onramp/contracts run test",
+    "test": "pnpm lint && pnpm typecheck && pnpm -F @onramp/contracts run build && vitest run && pnpm -F @onramp/contracts run test",
     "forks:up": "pnpm -F @onramp/forks run up",
     "forks:down": "pnpm -F @onramp/forks run down",
     "check:forks": "pnpm -F @onramp/forks run check",
