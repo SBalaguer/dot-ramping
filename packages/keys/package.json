@@ -2,5 +2,14 @@
   "name": "@onramp/keys",
   "version": "0.0.0",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@polkadot-labs/hdkd": "^0.0.32",
+    "@polkadot-labs/hdkd-helpers": "^0.0.34",
+    "polkadot-api": "^2.2.2",
+    "viem": "^2.58.4"
+  }
 }
