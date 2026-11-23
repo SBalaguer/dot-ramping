@@ -1,0 +1,14 @@
+{
+  "beneficiary": "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d",
+  "xcmTemplate": "0x050c0d01020400010100bebebebebebebebebebebebebebebebebebebebebebebebebebebebebebebebe140d010000010100bebebebebebebebebebebebebebebebebebebebebebebebebebebebebebebebe",
+  "xcmOffsets": [
+    10,
+    50
+  ],
+  "xcmFilled": "0x050c0d01020400010100d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d140d010000010100d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d",
+  "claimerTemplate": "0x00010100bebebebebebebebebebebebebebebebebebebebebebebebebebebebebebebebe",
+  "claimerOffsets": [
+    4
+  ],
+  "claimerFilled": "0x00010100d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
+}
