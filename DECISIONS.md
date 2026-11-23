@@ -136,3 +136,19 @@ Each entry: date, what, why, how to revert.
   the fork, and reports the result; it decides the S-ETH design (HANDOFF §8.3, §16).
 - `ETH_MAINNET_RPC` stays on dRPC's keyless endpoint; raise it again before M6.
 - M4: the Sepolia NTT manager needs a peer registered for Wormhole chain 73 before `transfer()` works.
+
+## 2026-11-23 — Node pinned to 26
+
+- **What:** `.nvmrc` is `26`, `engines.node` is `26.x`, and `.npmrc` sets `engine-strict=true` so pnpm
+  refuses other majors. HANDOFF §10 and §12 say Node 22. This supersedes the earlier toolchain entry.
+- **Why:** 26.7.0 is the Node on the owner's machine and the one everything has been verified on. Native
+  modules load on it: `sqlite3@6.0.1` (chopsticks state cache, exercised by every fork run) and
+  `better-sqlite3@13.2.0` (the relayer's store from M4; installed and queried in a scratch project).
+- **Revert:** change `.nvmrc` and `engines` together, then rerun `pnpm install`, `pnpm test`, `pnpm check:forks`.
+
+## 2026-11-23 — Fork setup shortcut: EVM account funding in `check:forks`
+
+- **What:** `forks/src/checks/evm-write.ts` gives a throwaway EVM key HDX and WETH (asset 20) and whitelists it
+  in `EVMAccounts.ContractDeployer` with `dev_setStorage` before it deploys a probe contract.
+- **Why:** Hydration charges EVM gas in WETH and gates CREATE on the deployer whitelist.
+- **Revert:** not applicable; fork-only.
