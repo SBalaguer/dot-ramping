@@ -6,6 +6,6 @@
     "deps": "forge soldeer install",
     "build": "forge build",
     "test": "forge test",
-    "lint": "forge fmt --check"
+    "lint": "forge fmt --check && forge lint src"
   }
 }

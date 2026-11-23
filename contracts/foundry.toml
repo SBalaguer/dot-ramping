@@ -7,13 +7,25 @@ solc_version = "0.8.34"
 evm_version = "cancun"
 optimizer = true
 optimizer_runs = 200
+# Keeps creation code, and so the CREATE2 addresses, independent of compiler metadata.
+bytecode_hash = "none"
+cbor_metadata = false
+allow_paths = ["../third_party/whm/contracts/src"]
+fs_permissions = [{ access = "read", path = "./test/fixtures" }]
 remappings = [
   "forge-std/=dependencies/forge-std-1.14.0/src/",
   "@openzeppelin/contracts/=dependencies/openzeppelin-contracts-5.5.0/contracts/",
+  "whm/=../third_party/whm/contracts/src/",
 ]
 
 [fmt]
 line_length = 120
+
+[lint]
+lint_on_build = false
+# Template validation reverts on the first bad slot by design. Ownable rejects a zero owner. Ether only goes
+# to the configured bridge, and the one event after a call follows the factory's own clone creation.
+exclude_lints = ["require-revert-in-loop", "missing-zero-check", "arbitrary-send-eth", "reentrancy-events"]
 
 [soldeer]
 remappings_generate = false
