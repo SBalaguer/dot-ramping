@@ -27,7 +27,7 @@ function requirements(): Requirement[] {
   const relayer = addressFromEnv("RELAYER_EVM_PK");
   const user = addressFromEnv("DEV_USER_EVM_PK");
   return [
-    { account: "relayer", address: relayer, chain: "sepolia", token: ETH, required: parseEther("0.2") },
+    { account: "relayer", address: relayer, chain: "sepolia", token: ETH, required: parseEther("0.05") },
     { account: "relayer", address: relayer, chain: "baseSepolia", token: ETH, required: parseEther("0.05") },
     { account: "dev user", address: user, chain: "sepolia", token: ETH, required: parseEther("0.02") },
     { account: "dev user", address: user, chain: "baseSepolia", token: ETH, required: parseEther("0.01") },
@@ -36,7 +36,7 @@ function requirements(): Requirement[] {
       address: user,
       chain: "sepolia",
       token: { symbol: "USDC", decimals: 6, address: SEPOLIA_USDC },
-      required: parseUnits("50", 6),
+      required: parseUnits("20", 6),
     },
     {
       account: "dev user",
