@@ -13,7 +13,8 @@
     "forks:up": "pnpm -F @onramp/forks run up",
     "forks:down": "pnpm -F @onramp/forks run down",
     "check:forks": "pnpm -F @onramp/forks run check",
-    "check:env": "tsx --env-file-if-exists=.env scripts/check-env.ts"
+    "check:env": "tsx --env-file-if-exists=.env scripts/check-env.ts",
+    "funding:report": "tsx --env-file-if-exists=.env scripts/funding-report.ts"
   },
   "dependencies": {
     "@galacticcouncil/descriptors": "2.7.0",

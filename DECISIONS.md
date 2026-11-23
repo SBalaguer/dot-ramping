@@ -71,3 +71,30 @@ Each entry: date, what, why, how to revert.
 - **Why:** A pinned fork needs archive state. `ethereum-rpc.publicnode.com` refuses archive requests without
   a token; drpc's keyless endpoint serves them but is rate-limited and comes with no guarantee.
 - **Revert:** set `ETH_MAINNET_RPC` to a keyed archive endpoint in `.env`; move the pin with `ETH_FORK_BLOCK`.
+
+## 2026-11-23 — Dev keys generated locally
+
+- **What:** `.env` (gitignored) holds two freshly generated secp256k1 keys: `RELAYER_EVM_PK` (also the
+  contract deployer and factory owner in the POC) and `DEV_USER_EVM_PK` (the demo "user"). `REFUND_ADDRESS`
+  is the dev user's address.
+- **Why:** `pnpm funding:report` needs addresses to ask the owner for testnet funds.
+- **Revert:** replace the values in `.env` before anything is deployed; deployed contracts are owned by the
+  relayer key.
+
+## 2026-11-23 — W-BASE deposit asset: Aave's Base Sepolia USDC, not Circle's
+
+- **What:** W-BASE uses USDC `0xba50Cd2A20f6DA35D788639E581bca8d0B5d4D5f`, the token Aave v3 lists on Base
+  Sepolia (HANDOFF §16 default). Demo funds are minted from Aave's faucet
+  `0xD9145b5F45Ad4519c7ACcD6E0A4A82e83bB8A6Dc`, which is permissionless (`isPermissioned() == false`).
+- **Why:** The PSM vault gates deposits on the Aave oracle price (0.9998 USD today) and supplies to the Aave
+  pool, so the asset must be an Aave reserve. Circle's Base Sepolia USDC is not one.
+- **Revert:** change `BASE_SEPOLIA_USDC` in `packages/chains/src/tokens.ts` and redeploy the vault.
+
+## 2026-11-23 — M0 result
+
+- `pnpm check:env` and `pnpm check:forks` pass. Differences from HANDOFF §5 and §12:
+  - `ethereum-rpc.publicnode.com` cannot back a pinned fork (no archive state); see the fork source entry.
+  - `pnpm -F <pkg> up` is pnpm's own update command, so fork scripts are invoked with `pnpm -F … run`.
+  - Sepolia and Base Sepolia Wormhole cores charge a 0 wei message fee and use guardian set #0 with the
+    single testnet guardian `0x13947Bd48b18E53fdAeEe77F3473391aC727C638`.
+  - Hydration → Asset Hub USDT transfer costs 0.000591 USDT in XCM fees on the forks.
