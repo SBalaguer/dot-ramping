@@ -516,3 +516,89 @@ maximal) → DepositAsset`.
 - **How it was caught:** `forks:up` refused to finish because the facilitator was not at its planned address,
   before anything on Base Sepolia had been bound to the wrong one.
 - **Revert:** not applicable.
+
+## 2026-11-24 — Ethereum fork source is a keyed archive endpoint
+
+- **What:** the owner put a keyed archive URL in `.env` as `ETH_MAINNET_RPC`. This closes the open point of
+  the two earlier fork-source entries; the keyless dRPC endpoint is no longer used.
+- **Revert:** not applicable.
+
+## 2026-11-24 — S-ETH: what the forwarder asks Asset Hub to do
+
+- **What:** the XCM template bound into the factory is
+  `InitiateTransfer { Hydration, remote_fees: 0.1 USDT.sb, assets: all USDT.sb, remote_xcm: [RefundSurplus,
+DepositAsset → beneficiary] }, RefundSurplus, DepositAsset(all ether) → beneficiary`. It has no amount in
+  it, so one template serves every deposit; the beneficiary is written into two 32-byte slots, and into one
+  in the claimer.
+- **Deviation, remote fee in USDT.sb:** HANDOFF §8.3 pays Hydration in ether. Paying it out of the bridged
+  USDT keeps the constant in the immutable template in dollars instead of ether, leaves no ether dust on
+  Hydration, and makes USDT.sb the only asset the fresh account receives, so Hydration sets it as the
+  account's fee currency by itself. Hydration charged 0.000639 USDT.sb; the rest of the 0.1 is refunded to
+  the beneficiary in the same message.
+- **No swap in the XCM:** as decided on 2026-11-24, the top-up's key signs the swap and the transfer home
+  (`usdtSbHomeSwap`, pools named explicitly). `DECISIONS.md` therefore records: **signed fallback used**.
+- **Claimer:** `AccountId32 { network: Polkadot, id: beneficiary }`, the form Snowbridge's own client uses:
+  Asset Hub files trapped assets under the claimer's exact location, and a signed claim arrives with the
+  network named. Claiming has not been exercised here.
+- **Leftover ether:** what Asset Hub does not spend of the execution fee goes to the beneficiary on Asset
+  Hub (about 0.00002 ETH), as HANDOFF specifies. The operator pays it and does not get it back.
+- **Known limits:** if Hydration rejected the message, the assets would be trapped there under Asset Hub's
+  origin, not the beneficiary's (the message sets no claimer hint on Hydration). Recovery of assets trapped
+  on Asset Hub with the top-up's key is not built.
+- **Revert:** change `transferToHydration` in `packages/routes/src/snowbridge/xcm.ts`; that is a new factory.
+
+## 2026-11-24 — S-ETH relay hop: Bridge Hub's converter ported, checked against a mainnet message
+
+- **What:** `bridgeHubXcm` in `packages/routes/src/snowbridge/relay.ts` is a port of
+  `MessageToXcm::convert` (polkadot-sdk `bridges/snowbridge/primitives/inbound-queue/src/v2/converter.rs`)
+  for the messages our forwarders produce: one Ethereum-native ERC-20, raw XCM, a claimer. It decodes the
+  Gateway's `OutboundMessageAccepted` event, prepends Bridge Hub's instructions and appends the topic Bridge
+  Hub derives from the nonce.
+- **Why a port:** `@snowbridge/api` only builds the Asset Hub message for its own fixed transfer XCM, and
+  Bridge Hub exposes no runtime API for the conversion (`InboundQueueV2Api` has `is_message_relayed` only).
+- **Evidence that it is exact:** a unit test feeds it the Gateway event of mainnet transaction
+  `0xd49ec0c3…00e9d1` (nonce 1529) and compares the result, byte for byte, with the HRMP message Bridge Hub
+  Polkadot sent Asset Hub for it in block 9,008,656 (spec 2005003). Bridge Hub sends in XCMP's
+  `ConcatenatedOpaqueVersionedXcm` format; so do we.
+- **Delivery:** the message is put into the Asset Hub fork's HRMP channel from para 1002 with
+  `dev_newBlock`, after a `DryRunApi.dry_run_xcm` from Bridge Hub's origin completes and shows one message
+  forwarded to Hydration. Asset Hub's XCMP queue, barrier and executor then run it, and Hydration receives
+  the onward message over the forks' HRMP link. No Bridge Hub fork is needed.
+- **What is not reproduced:** the beacon-chain proof of the event, Bridge Hub's nonce check and the relayer
+  reward. In place of the nonce check, `deliverFromBridgeHub` searches Asset Hub's blocks for the message's
+  topic before injecting, and a fork check proves a second delivery does nothing.
+- **Label:** the relayer step is `RELAY_SIMULATED` with `relay=simulated` in its references.
+- **Revert:** not applicable while Snowbridge runs no testnet relayers.
+
+## 2026-11-24 — S-ETH fees are measured on the Asset Hub fork, not quoted by `@snowbridge/api`
+
+- **What:** `quoteSnowbridgeFees` rehearses the exact message with a large execution fee and reads what
+  Asset Hub would hand back. Execution fee = what it spent × 1.5 + Asset Hub's minimum ether balance
+  (0.000015 ETH, needed for the refund deposit to succeed). Relayer fee = the ether price of 0.25 DOT on
+  Asset Hub's pool × 1.3, which is Snowbridge's own hardcoded estimate and padding.
+- **Why not `@snowbridge/api` (HANDOFF §8.3):** its fee code is tied to its own transfer XCM, and it brings
+  polkadot-js and ethers into a PAPI and viem codebase.
+- **Difference from Snowbridge's quote:** theirs adds Bridge Hub's delivery fee to Asset Hub to the relayer
+  fee; ours leaves it out because no Bridge Hub is forked.
+- **Measured:** 0.000035 ETH execution plus 0.000127 ETH relayer fee, 0.000162 ETH per top-up, paid by the
+  relayer. On mainnet the relayer also pays Ethereum gas for `deployAndForward`.
+- **Revert:** replace the function's body; callers only use the two numbers.
+
+## 2026-11-24 — S-ETH deployment, fork setup shortcuts and results
+
+- **Factory:** `0xa9B6d32FD106A8E0ed3dCC66d80b29F2a82D6e1f` on Sepolia, Base Sepolia and the Ethereum fork,
+  now with Snowbridge on chain id 1 (the real Gateway `0x27ca…68e7`, USDT). The M5 factory (`0x2769…49dD`)
+  is no longer used; deposit addresses changed. `forks:up` deploys it on the fork with the same transaction
+  as on a testnet and refuses to continue if the address differs from the testnets'.
+- **Setup shortcuts on the Ethereum fork:** `anvil_setBalance` gives the relayer 10 ETH and the dev user
+  1 ETH; the dev user's 100,000 USDT is written into Tether's balance slot.
+- **States:** `SOURCE_SUBMITTED → GATEWAY_EVENT → RELAY_SIMULATED → DRY_RUN_OK → DELIVERED_AH → DELIVERED`
+  (arrival on Hydration), then the same `FEE_ASSET_SET → SWAPPED_AND_SENT → COMPLETED` as the other routes.
+- **Results through the relayer:** 300 USDT → 300.060478 USDT on Asset Hub in 30 s; 10,000 →
+  10,000.963084. The swap along the direct route returns slightly more than par at the pinned block, and
+  the user's costs are 0.0006 USDT.sb (Hydration XCM), 0.003 (the batch) and 0.0006 USDT (XCM home).
+- **Routing:** a USDT deposit under the threshold on the Ethereum fork has no route (Snowbridge's fee is
+  flat) and its top-up stays in `DEPOSIT_DETECTED` with an error until the refund path of M7 exists.
+- **New dependency:** `@polkadot-api/substrate-bindings` 0.20.3 (the version polkadot-api uses) for SCALE
+  primitives in the relay port.
+- **Revert:** not applicable.

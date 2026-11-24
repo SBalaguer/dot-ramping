@@ -36,5 +36,5 @@ Write like a seasoned open-source maintainer whose code gets reviewed by strange
 - `pnpm forks:up` / `pnpm forks:down`
 - `pnpm relayer:dev` · `pnpm web:dev`
 - `pnpm demo:w-eth` · `pnpm demo:w-base` · `pnpm demo:s-eth`
-- `pnpm check:env` · `pnpm check:forks` · `pnpm probe:exchange-asset`
+- `pnpm check:env` · `pnpm check:forks [word]` (a word runs only the checks named with it) · `pnpm probe:exchange-asset`
 - `pnpm funding:report` · `pnpm deploy:testnets` · `pnpm bridge:base-sepolia <relayer|dev-user> <ether>`
