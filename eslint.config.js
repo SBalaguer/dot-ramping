@@ -1,4 +1,5 @@
 import js from "@eslint/js";
+import reactHooks from "eslint-plugin-react-hooks";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
@@ -9,7 +10,6 @@ export default tseslint.config(
       "third_party/",
       "contracts/{src,test,out,cache,dependencies}/",
       "forks/.cache/",
-      "web/",
     ],
   },
   js.configs.recommended,
@@ -23,5 +23,6 @@ export default tseslint.config(
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
     },
   },
+  { files: ["web/src/**/*.{ts,tsx}"], ...reactHooks.configs.flat.recommended },
   { files: ["*.js"], ...tseslint.configs.disableTypeChecked },
 );

@@ -13,7 +13,7 @@
     "ntt:build": "git -C third_party/ntt submodule update --init --depth 1 && cd third_party/ntt/evm && FOUNDRY_PROFILE=prod forge build src/NttManager/NttManager.sol src/Transceiver/WormholeTransceiver/WormholeTransceiver.sol lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol",
     "lint": "eslint . && prettier --check . && pnpm -F @onramp/contracts run lint",
     "format": "prettier --write . && forge fmt --root contracts",
-    "typecheck": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json && tsc -p web/tsconfig.json",
     "test": "pnpm lint && pnpm typecheck && pnpm -F @onramp/contracts run build && vitest run && pnpm -F @onramp/contracts run test",
     "forks:up": "pnpm -F @onramp/forks run up",
     "forks:down": "pnpm -F @onramp/forks run down",
@@ -26,7 +26,8 @@
     "funding:report": "tsx --env-file-if-exists=.env scripts/funding-report.ts",
     "bridge:base-sepolia": "tsx --env-file-if-exists=.env scripts/bridge-to-base-sepolia.ts",
     "deploy:testnets": "tsx --env-file-if-exists=.env scripts/deploy-testnets.ts",
-    "probe:exchange-asset": "pnpm -F @onramp/forks run probe:exchange-asset"
+    "probe:exchange-asset": "pnpm -F @onramp/forks run probe:exchange-asset",
+    "web:dev": "pnpm -F @onramp/web run dev"
   },
   "dependencies": {
     "@galacticcouncil/descriptors": "2.7.0",
@@ -42,6 +43,7 @@
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.6.6",
     "eslint": "^10.15.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "prettier": "^3.10.1",
     "tsx": "^4.23.15",
     "typescript": "^5.7.2",
