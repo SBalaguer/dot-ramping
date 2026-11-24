@@ -465,3 +465,54 @@ maximal) → DepositAsset`.
 - **Checked before sending:** the portal address in viem's chain definition, in Base's contract documentation
   and on-chain (its `systemConfig()` is Base Sepolia's documented SystemConfig).
 - **Revert:** nothing to undo; the script is only a funding convenience.
+
+## 2026-11-24 — PSM recipient: no binding, the relayer fronts a fee float
+
+- **Question (HANDOFF §6, §16):** the PSM mints HOLLAR to an H160. Bind the per-top-up account, or operate a
+  truncated account with an EVM key?
+- **Found on the fork:** neither is needed to hold the funds. HOLLAR is an ERC-20 contract, and Hydration reads
+  an unbound sr25519 account's HOLLAR at the first 20 bytes of its AccountId32, which is exactly the recipient
+  the forwarder encodes. What such an account cannot do is transact: holding only a contract balance it has
+  no providers, and Hydration rejects its transactions as invalid, including the bind itself.
+- **What:** the relayer sends 0.02 USDT (twice the existential deposit) to the top-up account before it
+  forwards the deposit (`ACCOUNT_FUNDED`, replacing HANDOFF's `ACCOUNT_BOUND`). That creates the account and
+  makes USDT its fee currency. The account then signs the same batch as on W-ETH, sells all its HOLLAR, and
+  sends the proceeds plus what the fee left of the float to Asset Hub. No `dev_setStorage` touches a top-up
+  account.
+- **How it is sent:** from the relayer's EVM account through Hydration's dispatch precompile
+  (`Currencies.transfer`), because an ERC-20 precompile transfer to an H160 would credit the truncated
+  account, not the sr25519 one. The call carries an explicit 200,000 gas limit: the precompile needs more gas
+  available than the 54k it uses, and an estimate reports only the latter.
+- **Production question:** the float costs the operator 0.02 USDT per PSM top-up and the user receives about
+  0.017 of it. Either keep it as a cost of the route, or deduct it from what is sent home.
+- **Setup shortcut:** the relayer's own USDT on the fork (1,000) is written with `dev_setStorage`.
+- **Revert:** bind with a fork-funded fee as HANDOFF §16 proposes; the float step would be replaced by it.
+
+## 2026-11-24 — W-BASE on Base Sepolia and the fork: what was deployed
+
+- **Base Sepolia:** Hydration's `HollarBaseVault`, unmodified, at `0x9C0874934Cd16A52877edDa96A372102619C0eC8`
+  over the USDC Aave v3 lists there (`0xba50…4D5f`, HANDOFF §16 default), with Aave's addresses provider and
+  aUSDC read from the pool. Limits are Hydration's launch values (10,000 USDC per day each way, oracle floor
+  0.99). The relayer key holds the admin, guardian and treasurer roles. Its Hydration emitter is bound, once
+  and for all, to the fork facilitator's planned address.
+- **Hydration fork:** `HollarBaseFacilitator`, bound to that vault, same limits, opened for mint and redeem.
+- **Setup shortcut, facilitator registration:** HOLLAR only accepts `addFacilitator` from a governance-held
+  account. `forks/src/setup/governance.ts` writes the preimage and a scheduler entry with the
+  EconomicParameters origin, and the runtime dispatches `Dispatcher.dispatch_as_aave_manager(EVM.call(…))`
+  itself in the next block, the way Hydration's own fork probe does. Bucket: 1,000,000 HOLLAR.
+- **Factory:** `0x2769755177B129FfFfeA35F99f4C6dAce77D49dD` on Sepolia and Base Sepolia, with Basejump on the
+  first and the PSM on the second. The M4 factory (`0x74EE…422C`) is no longer used; deposit addresses changed.
+- **One deposit address for both chains:** a top-up's route mask is the union of both chains' routes, so its
+  address is the same on Sepolia and Base Sepolia and the relayer watches both. The chain a deposit arrives
+  on decides the route; `POST /topups` takes no chain.
+- **Revert:** delete `deployments/base-sepolia.json` and run `pnpm deploy:testnets` (formerly
+  `deploy:sepolia`); a new vault means a new factory.
+
+## 2026-11-24 — Fork address plan corrected: explicit nonces
+
+- **What:** the earlier entry said fork addresses follow from the creation order. They follow from the
+  operator's nonce, and configuration transactions use nonces too: the facilitator is created at nonce 12,
+  not 8. `forks/src/setup/addresses.ts` now lists each contract's nonce.
+- **How it was caught:** `forks:up` refused to finish because the facilitator was not at its planned address,
+  before anything on Base Sepolia had been bound to the wrong one.
+- **Revert:** not applicable.

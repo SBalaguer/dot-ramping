@@ -18,33 +18,36 @@ pnpm bootstrap          # Solidity dependencies, the whm and NTT contract builds
 cp .env.example .env    # then fill in the two testnet-only keys and the factory owner address
 ```
 
-## Running W-ETH (Sepolia USDC to USDT on the Asset Hub fork)
+## Running the Wormhole routes
 
-The Sepolia contracts in `deployments/sepolia.json` belong to this repository's relayer key. With a different
-key, delete that file and run `pnpm deploy:sepolia` first.
+W-ETH takes USDC on Sepolia through Basejump, W-BASE takes USDC on Base Sepolia through the HOLLAR PSM. Both
+end as USDT on the Asset Hub fork. The testnet contracts in `deployments/` belong to this repository's
+relayer key; with a different key, delete the two testnet files and run `pnpm deploy:testnets` first.
 
 ```sh
 pnpm forks:up           # terminal 1: Ethereum, Hydration and Asset Hub forks plus the fork-side contracts
 pnpm relayer:dev        # terminal 2: relayer on http://127.0.0.1:8787
-pnpm demo:w-eth 5       # terminal 3: creates a top-up, deposits 5 USDC from the dev wallet, follows it
+pnpm demo:w-eth 5       # terminal 3: deposits 5 USDC on Sepolia from the dev wallet and follows the top-up
+pnpm demo:w-base 5      #             the same on Base Sepolia (mints the USDC from Aave's faucet)
 ```
 
-The relayer API: `POST /topups`, `GET /topups`, `GET /topups/:id`, `GET /events` (server-sent events).
+A top-up has one deposit address, valid on both testnets. The relayer API: `POST /topups`, `GET /topups`,
+`GET /topups/:id`, `GET /events` (server-sent events).
 
 ## Commands
 
-| Command                                                | What it does                                                                                                      |
-| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
-| `pnpm test`                                            | Lint, typecheck, TypeScript tests and Foundry tests                                                               |
-| `pnpm check:env`                                       | Verifies the testnet RPCs, Wormhole, the CREATE2 deployer, our Sepolia deployment and the Snowbridge Gateway      |
-| `pnpm check:forks`                                     | Spawns the Hydration and Asset Hub forks and proves HRMP delivery, the swap home, EVM writes and VAA verification |
-| `pnpm forks:up` / `pnpm forks:down`                    | Starts and stops the Ethereum (anvil), Hydration and Asset Hub mainnet forks                                      |
-| `pnpm relayer:dev`                                     | Runs the relayer against the forks and Sepolia                                                                    |
-| `pnpm demo:w-eth [amount]`                             | Sends test USDC to a new deposit address on Sepolia and follows it to Asset Hub                                   |
-| `pnpm deploy:sepolia`                                  | Deploys what is missing from `deployments/sepolia.json` (NTT, Basejump emitter, factory)                          |
-| `pnpm funding:report`                                  | Lists the testnet funds each account still needs                                                                  |
-| `pnpm bridge:base-sepolia <relayer\|dev-user> <ether>` | Moves an account's Sepolia ETH to Base Sepolia through Base's native bridge                                       |
-| `pnpm probe:exchange-asset`                            | Dry-runs the in-XCM USDT.sb to USDT swap on the Hydration fork                                                    |
+| Command                                                  | What it does                                                                                                                                |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm test`                                              | Lint, typecheck, TypeScript tests and Foundry tests                                                                                         |
+| `pnpm check:env`                                         | Verifies the testnet RPCs, Wormhole, the CREATE2 deployer, our testnet deployments and the Snowbridge Gateway                               |
+| `pnpm check:forks`                                       | Spawns the Hydration and Asset Hub forks and proves HRMP delivery, the swap home from USDC and from HOLLAR, EVM writes and VAA verification |
+| `pnpm forks:up` / `pnpm forks:down`                      | Starts and stops the Ethereum (anvil), Hydration and Asset Hub mainnet forks                                                                |
+| `pnpm relayer:dev`                                       | Runs the relayer against the forks and Sepolia                                                                                              |
+| `pnpm demo:w-eth [amount]` / `pnpm demo:w-base [amount]` | Sends test USDC to a new deposit address on Sepolia or Base Sepolia and follows it to Asset Hub                                             |
+| `pnpm deploy:testnets`                                   | Deploys what is missing from `deployments/` on Sepolia and Base Sepolia (bridges, then the factory)                                         |
+| `pnpm funding:report`                                    | Lists the testnet funds each account still needs                                                                                            |
+| `pnpm bridge:base-sepolia <relayer\|dev-user> <ether>`   | Moves an account's Sepolia ETH to Base Sepolia through Base's native bridge                                                                 |
+| `pnpm probe:exchange-asset`                              | Dry-runs the in-XCM USDT.sb to USDT swap on the Hydration fork                                                                              |
 
 ## Layout
 
