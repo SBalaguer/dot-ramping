@@ -10,7 +10,7 @@ import type { StepName } from "../src/topup";
 import { createTopUp } from "../src/topups";
 
 const FACTORY = "0x74EEFEb03Dc729323573010d5C1c9267fCCe422C";
-const newTopUp = () => createTopUp({ sourceChain: "sepolia", factory: FACTORY, routeMask: 2 }, 0);
+const newTopUp = () => createTopUp({ factory: FACTORY, routeMask: 2 }, 0);
 
 /** A pipeline whose steps replay scripted outcomes and record every call. */
 function scripted(script: Partial<Record<StepName, (Outcome | Error)[]>>) {

@@ -1,5 +1,6 @@
 {
   "wormholeCore": "0x9C0874934Cd16A52877edDa96A372102619C0eC8",
   "basejumpLanding": "0x9c70d8DA65fe0eEEf1e9d73F91220e975c259E15",
-  "basejumpReceiver": "0xc8AB2Affe0Fe8e265Ea391c394e2D1b5AdDDa2fA"
+  "basejumpReceiver": "0xc8AB2Affe0Fe8e265Ea391c394e2D1b5AdDDa2fA",
+  "psmFacilitator": "0x0240f6afdbF719Dd83F78791b66b29Db1DD047d8"
 }

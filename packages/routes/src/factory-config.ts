@@ -1,11 +1,13 @@
-import { SEPOLIA_USDC } from "@onramp/chains";
+import { BASE_SEPOLIA_USDC, SEPOLIA_USDC } from "@onramp/chains";
 import { chainRoutes, type FactoryConfig } from "@onramp/contracts";
 import type { Address } from "viem";
-import { sepolia } from "viem/chains";
+import { baseSepolia, sepolia } from "viem/chains";
 
 export interface RouteBridges {
   /** Our Basejump emitter on Sepolia. */
   basejumpEmitter: Address;
+  /** Our HOLLAR PSM vault on Base Sepolia. */
+  psmVault: Address;
 }
 
 /**
@@ -16,6 +18,9 @@ export function factoryConfig(owner: Address, relayer: Address, bridges: RouteBr
   return {
     owner,
     relayer,
-    chains: [chainRoutes(sepolia.id, { basejump: { bridge: bridges.basejumpEmitter, token: SEPOLIA_USDC } })],
+    chains: [
+      chainRoutes(sepolia.id, { basejump: { bridge: bridges.basejumpEmitter, token: SEPOLIA_USDC } }),
+      chainRoutes(baseSepolia.id, { psm: { bridge: bridges.psmVault, token: BASE_SEPOLIA_USDC } }),
+    ],
   };
 }

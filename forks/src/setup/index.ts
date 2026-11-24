@@ -6,6 +6,7 @@ import type { PolkadotForks } from "../polkadot";
 import { forkContracts } from "./addresses";
 import { deployBasejumpDestination } from "./basejump";
 import { fundEvmDeployer } from "./evm-account";
+import { deployPsmDestination } from "./psm";
 import { deployTestnetWormholeCore } from "./wormhole-core";
 
 export { forkContracts } from "./addresses";
@@ -28,7 +29,8 @@ export async function setUpHydrationFork(
 
   const wormholeCore = await deployTestnetWormholeCore(operator);
   const { landing, receiver } = await deployBasejumpDestination(forks.hydration, by, wormholeCore);
-  const deployment = { wormholeCore, basejumpLanding: landing, basejumpReceiver: receiver };
+  const psmFacilitator = await deployPsmDestination(forks.hydration, by, wormholeCore);
+  const deployment = { wormholeCore, basejumpLanding: landing, basejumpReceiver: receiver, psmFacilitator };
 
   const planned = forkContracts(operator.address);
   for (const [name, address] of Object.entries(deployment) as [keyof typeof deployment, `0x${string}`][]) {

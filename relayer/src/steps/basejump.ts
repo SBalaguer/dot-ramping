@@ -1,21 +1,22 @@
-import { WORMHOLE_TESTNET, signedVaa } from "@onramp/chains";
+import { WORMHOLE_TESTNET } from "@onramp/chains";
 import { completeBasejumpTransfer, forwardViaBasejump } from "@onramp/routes";
-import type { Address, Hex } from "viem";
+import type { Hex } from "viem";
 
 import type { Context } from "../context";
 import type { Outcome, StepDefinition } from "../pipeline";
 import { paramsOf } from "../secrets";
 import { refsOf } from "../topup";
 
-export const sourceSubmitted: StepDefinition<Context> = {
+export const basejumpSubmitted: StepDefinition<Context> = {
   name: "SOURCE_SUBMITTED",
   chain: "sepolia",
-  async run({ sepolia, deployed }, topUp) {
-    const sent = await forwardViaBasejump(sepolia, deployed.sepolia.factory, paramsOf(topUp));
+  async run({ sources, factory }, topUp) {
+    const sent = await forwardViaBasejump(sources.sepolia.by, factory, paramsOf(topUp));
     return {
       done: {
         tx: sent.txHash,
         block: sent.blockNumber.toString(),
+        wormholeChain: String(WORMHOLE_TESTNET.sepolia.chainId),
         emitter: sent.emitter,
         amount: sent.amount.toString(),
         bridgeFee: sent.fee.toString(),
@@ -26,27 +27,13 @@ export const sourceSubmitted: StepDefinition<Context> = {
   },
 };
 
-export const vaaSigned: StepDefinition<Context> = {
-  name: "VAA_SIGNED",
-  chain: "wormhole",
-  async run(_context, topUp) {
-    const { emitter, messageSequence } = refsOf(topUp, "SOURCE_SUBMITTED");
-    const { chainId } = WORMHOLE_TESTNET.sepolia;
-    const vaa = await signedVaa(chainId, emitter as Address, BigInt(messageSequence!));
-    if (!vaa) return { waiting: "the guardians have not signed the message yet" };
-    return {
-      done: { vaaId: `${chainId}/${emitter!.slice(2).toLowerCase().padStart(64, "0")}/${messageSequence}`, vaa },
-    };
-  },
-};
-
-export const delivered: StepDefinition<Context> = {
+export const basejumpDelivered: StepDefinition<Context> = {
   name: "DELIVERED",
   chain: "hydration",
   async run({ hydrationEvm, deployed }, topUp): Promise<Outcome> {
     const { vaa } = refsOf(topUp, "VAA_SIGNED");
-    const payout = await completeBasejumpTransfer(hydrationEvm, deployed.hydration.basejumpReceiver, vaa as Hex);
-    if (!payout.txHash) return { done: { note: "the VAA had already been delivered" } };
-    return { done: { tx: payout.txHash, block: String(payout.blockNumber), paid: String(payout.paid) } };
+    const payout = await completeBasejumpTransfer(hydrationEvm, deployed.basejumpReceiver, vaa as Hex);
+    if (!payout) return { done: { note: "the VAA had already been delivered" } };
+    return { done: { tx: payout.txHash, block: payout.blockNumber.toString(), paid: payout.paid.toString() } };
   },
 };

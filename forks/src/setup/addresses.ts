@@ -1,24 +1,22 @@
 import { getContractAddress, type Address } from "viem";
 
 /**
- * Contracts the operator creates on a fresh Hydration fork, in order. Its nonce starts at 0 at the pinned
- * block, so the order fixes every address, and the Sepolia side can point at the landing before a fork runs.
- * Append only: inserting an entry moves every address after it.
+ * The operator's nonce when it creates each fork-side contract. Its nonce is 0 at the pinned block and every
+ * setup transaction, creation or not, uses one, so the setup sequence fixes every address; the testnet side
+ * can then point at the fork's contracts before a fork runs. Setup steps may only be appended: inserting one
+ * moves every later address, and `setUpHydrationFork` refuses to finish when an address is not the planned one.
  */
-const CREATION_ORDER = [
-  "wormholeImplementation",
-  "wormholeSetup",
-  "wormholeCore",
-  "basejumpLandingImplementation",
-  "basejumpLanding",
-  "basejumpReceiverImplementation",
-  "basejumpReceiver",
-] as const;
+const CREATION_NONCE = {
+  wormholeCore: 2,
+  basejumpLanding: 4,
+  basejumpReceiver: 6,
+  psmFacilitator: 12,
+} as const;
 
-export type ForkContract = (typeof CREATION_ORDER)[number];
+export type ForkContract = keyof typeof CREATION_NONCE;
 
 export function forkContracts(operator: Address): Record<ForkContract, Address> {
-  const entries = CREATION_ORDER.map((name, nonce) => [
+  const entries = Object.entries(CREATION_NONCE).map(([name, nonce]) => [
     name,
     getContractAddress({ from: operator, nonce: BigInt(nonce) }),
   ]);

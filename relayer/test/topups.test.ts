@@ -9,7 +9,7 @@ const FACTORY = "0x74EEFEb03Dc729323573010d5C1c9267fCCe422C";
 const USDC = 10n ** 6n;
 
 describe("createTopUp", () => {
-  const request = { sourceChain: "sepolia", factory: FACTORY, routeMask: routeMask(Route.Basejump) } as const;
+  const request = { factory: FACTORY, routeMask: routeMask(Route.Basejump, Route.Psm) } as const;
 
   it("derives the account, refund key and deposit address from the top-up's secrets alone", () => {
     const topUp = createTopUp(request);

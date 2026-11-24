@@ -1,4 +1,6 @@
 import {
+  BASE_SEPOLIA_USDC,
+  SEPOLIA_USDC,
   connectAssetHub,
   connectHydration,
   readDeployment,
@@ -7,29 +9,82 @@ import {
   type Deployments,
   type HydrationApi,
 } from "@onramp/chains";
-import { actor, type Actor } from "@onramp/contracts";
+import { actor, factoryAbi, type Actor } from "@onramp/contracts";
+import { Route, routeMask } from "@onramp/keys";
+import { isAddressEqual, zeroAddress, type Address } from "viem";
 
-/** Everything a step may touch: the relayer's account on each EVM chain and the two Polkadot chains. */
+export type SourceChain = "sepolia" | "baseSepolia";
+
+/** A chain deposits arrive on: the relayer's account there, the stablecoin watched and the routes the factory has. */
+export interface Source {
+  by: Actor;
+  token: Address;
+  decimals: number;
+  routes: number;
+}
+
+/** Everything a step may touch. */
 export interface Context {
-  sepolia: Actor;
+  sources: Record<SourceChain, Source>;
+  /** The forwarder factory, at the same address on every source chain. */
+  factory: Address;
   hydrationEvm: Actor;
   hydration: HydrationApi;
   assetHub: AssetHubApi;
-  deployed: { sepolia: Deployments["sepolia"]; hydration: Deployments["hydration-fork"] };
+  deployed: Deployments["hydration-fork"];
   thresholdUsd: number;
 }
 
-export function connect(thresholdUsd: number): { context: Context; disconnect: () => void } {
+const USDC_DECIMALS = 6;
+
+/** The routes the factory was deployed with on one chain; a deposit there can take no other. */
+async function configuredRoutes(by: Actor, factory: Address): Promise<number> {
+  const configured = await Promise.all(
+    Object.values(Route).map(async (route) => {
+      const [bridge] = await by.reader.readContract({
+        address: factory,
+        abi: factoryAbi,
+        functionName: "routeConfig",
+        args: [route],
+      });
+      return bridge === zeroAddress ? [] : [route];
+    }),
+  );
+  return routeMask(...configured.flat());
+}
+
+export async function connect(thresholdUsd: number): Promise<{ context: Context; disconnect: () => void }> {
   const relayer = relayerAccount();
+  const { factory } = readDeployment("sepolia");
+  if (!isAddressEqual(factory, readDeployment("base-sepolia").factory)) {
+    throw new Error("the factory address differs between Sepolia and Base Sepolia; deposit addresses would too");
+  }
+  const sepolia = actor("sepolia", relayer);
+  const baseSepolia = actor("baseSepolia", relayer);
   const hydration = connectHydration();
   const assetHub = connectAssetHub();
+
   return {
     context: {
-      sepolia: actor("sepolia", relayer),
+      sources: {
+        sepolia: {
+          by: sepolia,
+          token: SEPOLIA_USDC,
+          decimals: USDC_DECIMALS,
+          routes: await configuredRoutes(sepolia, factory),
+        },
+        baseSepolia: {
+          by: baseSepolia,
+          token: BASE_SEPOLIA_USDC,
+          decimals: USDC_DECIMALS,
+          routes: await configuredRoutes(baseSepolia, factory),
+        },
+      },
+      factory,
       hydrationEvm: actor("hydrationFork", relayer),
       hydration: hydration.api,
       assetHub: assetHub.api,
-      deployed: { sepolia: readDeployment("sepolia"), hydration: readDeployment("hydration-fork") },
+      deployed: readDeployment("hydration-fork"),
       thresholdUsd,
     },
     disconnect: () => {

@@ -1,4 +1,5 @@
 import {
+  BASE_SEPOLIA_USDC,
   CREATE2_DEPLOYER,
   GATEWAY_MODE_NORMAL,
   HYDRATION_WORMHOLE_CHAIN_ID,
@@ -15,7 +16,7 @@ import {
   wormholeCoreAbi,
   type EvmChainKey,
 } from "@onramp/chains";
-import { basejumpEmitterAbi, factoryAbi, nttManagerAbi } from "@onramp/contracts";
+import { basejumpEmitterAbi, factoryAbi, nttManagerAbi, psmVaultAbi } from "@onramp/contracts";
 import { forkContracts, spawnEthereumFork } from "@onramp/forks";
 import { Route } from "@onramp/keys";
 import { basejumpEtherFee } from "@onramp/routes";
@@ -107,6 +108,34 @@ async function sepoliaDeployment(): Promise<string> {
   return `factory ${factory} (owner ${owner}) -> emitter ${basejumpEmitter} -> landing ${landing} on Hydration; bridge fee ${etherFee} wei`;
 }
 
+/** The Base Sepolia side of W-BASE: same factory as Sepolia, routing only to our vault, which serves our facilitator. */
+async function baseSepoliaDeployment(): Promise<string> {
+  const client = publicClient("baseSepolia");
+  const { factory, psmVault } = readDeployment("base-sepolia");
+  const relayer = relayerAccount().address;
+  const facilitator = forkContracts(relayer).psmFacilitator;
+  const factoryContract = { address: factory, abi: factoryAbi } as const;
+  const vault = { address: psmVault, abi: psmVaultAbi } as const;
+
+  const [owner, factoryRelayer, [bridge, token], bound, paused, allowance] = await Promise.all([
+    client.readContract({ ...factoryContract, functionName: "owner" }),
+    client.readContract({ ...factoryContract, functionName: "relayer" }),
+    client.readContract({ ...factoryContract, functionName: "routeConfig", args: [Route.Psm] }),
+    client.readContract({ ...vault, functionName: "authorizedEmitters", args: [HYDRATION_WORMHOLE_CHAIN_ID] }),
+    client.readContract({ ...vault, functionName: "depositsPaused" }),
+    client.readContract({ ...vault, functionName: "depositAllowance" }),
+  ]);
+  if (!isAddressEqual(factory, readDeployment("sepolia").factory)) throw new Error("factory differs from Sepolia's");
+  if (!isAddressEqual(owner, factoryOwner())) throw new Error(`factory owner is ${owner}, not OWNER_EVM_ADDRESS`);
+  if (!isAddressEqual(factoryRelayer, relayer)) throw new Error(`factory relayer is ${factoryRelayer}, not ours`);
+  if (!isAddressEqual(bridge, psmVault) || !isAddressEqual(token, BASE_SEPOLIA_USDC)) {
+    throw new Error(`factory routes the PSM to ${bridge} with token ${token}`);
+  }
+  if (bound !== pad(facilitator).toLowerCase()) throw new Error(`vault is bound to ${bound}, not ${facilitator}`);
+  if (paused) throw new Error("vault deposits are paused");
+  return `factory ${factory} (same as Sepolia) -> vault ${psmVault} -> facilitator ${facilitator} on Hydration; ${allowance} USDC of deposit allowance`;
+}
+
 async function gatewayOnFork(forkBlock: number): Promise<string> {
   const client = publicClient("ethereumFork");
   const gateway = { address: snowbridgeGateway(), abi: gatewayAbi } as const;
@@ -156,6 +185,7 @@ try {
     )),
     await report("CREATE2 deployer", create2Deployer),
     await report("W-ETH deployment on Sepolia", sepoliaDeployment),
+    await report("W-BASE deployment on Base Sepolia", baseSepoliaDeployment),
     await report("Snowbridge Gateway on Ethereum fork", () => gatewayOnFork(fork.spec.block)),
     await report("Hydration Paseo is dead", hydrationPaseoDead),
   ];

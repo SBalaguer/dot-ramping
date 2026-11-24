@@ -1,4 +1,5 @@
 import { checkEvmWrite } from "./checks/evm-write";
+import { checkHollarHome } from "./checks/hollar-home";
 import { checkHrmpTransfer } from "./checks/hrmp";
 import { checkSwapHome } from "./checks/swap-home";
 import { checkWormholeCore } from "./checks/wormhole-core";
@@ -7,6 +8,7 @@ import { spawnPolkadotForks, teardownPolkadotForks, type PolkadotForks } from ".
 const CHECKS: [string, (forks: PolkadotForks) => Promise<string>][] = [
   ["HRMP transfer Hydration -> Asset Hub", checkHrmpTransfer],
   ["Swap and send home from a fresh account", checkSwapHome],
+  ["HOLLAR minted to an unbound account goes home", checkHollarHome],
   ["EVM write through the Hydration fork RPC", checkEvmWrite],
   ["Wormhole core accepting testnet VAAs", checkWormholeCore],
 ];

@@ -2,10 +2,6 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { factoryAbi } from "@onramp/contracts";
-import { Route, routeMask } from "@onramp/keys";
-import { zeroAddress } from "viem";
-
 import { createApi } from "./api";
 import { connect } from "./context";
 import { pipelineOf } from "./routes";
@@ -21,28 +17,10 @@ const POLL_INTERVAL_MS = 5_000;
 
 mkdirSync(dirname(databaseFile), { recursive: true });
 const store = new Store(databaseFile);
-const { context, disconnect } = connect(thresholdUsd);
-const { factory } = context.deployed.sepolia;
+const { context, disconnect } = await connect(thresholdUsd);
+const routes = Object.values(context.sources).reduce((mask, source) => mask | source.routes, 0);
 
-/** A deposit address is bound to exactly the routes its factory has on the source chain. */
-const configured = await Promise.all(
-  Object.values(Route).map(async (route) => {
-    const [bridge] = await context.sepolia.reader.readContract({
-      address: factory,
-      abi: factoryAbi,
-      functionName: "routeConfig",
-      args: [route],
-    });
-    return bridge === zeroAddress ? [] : [route];
-  }),
-);
-const sepoliaRoutes = routeMask(...configured.flat());
-
-const api = createApi({
-  store,
-  sourceChains: ["sepolia"],
-  create: (sourceChain) => createTopUp({ sourceChain, factory, routeMask: sepoliaRoutes }),
-});
+const api = createApi({ store, create: () => createTopUp({ factory: context.factory, routeMask: routes }) });
 const save = (topUp: TopUp): void => {
   store.save(topUp);
   api.publish(topUp);
@@ -52,8 +30,8 @@ const save = (topUp: TopUp): void => {
 const worker = startWorker(store, { context, pipelineOf, save }, POLL_INTERVAL_MS);
 
 api.server.listen(port, () => {
-  console.log(`relayer ${context.sepolia.wallet.account.address} listening on http://127.0.0.1:${port}`);
-  console.log(`factory ${factory} on Sepolia, route mask ${sepoliaRoutes}, ${store.open().length} open top-ups`);
+  console.log(`relayer ${context.hydrationEvm.wallet.account.address} listening on http://127.0.0.1:${port}`);
+  console.log(`factory ${context.factory}, route mask ${routes}, ${store.open().length} open top-ups`);
 });
 
 const shutdown = async (): Promise<void> => {

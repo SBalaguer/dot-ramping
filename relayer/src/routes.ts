@@ -2,21 +2,32 @@ import { HYDRATION_ASSET } from "@onramp/chains";
 
 import type { Context } from "./context";
 import type { StepDefinition } from "./pipeline";
-import { delivered, sourceSubmitted, vaaSigned } from "./steps/basejump";
+import { basejumpDelivered, basejumpSubmitted } from "./steps/basejump";
 import { depositDetected } from "./steps/deposit";
 import { homeSteps } from "./steps/home";
+import { accountFunded, psmDelivered, psmSubmitted } from "./steps/psm";
+import { vaaSigned } from "./steps/vaa";
 import type { TopUp } from "./topup";
 
-/** W-ETH: Sepolia USDC through Basejump; Hydration pays out Wormhole USDC and swaps along its stored route. */
-const BASEJUMP: StepDefinition<Context>[] = [
-  depositDetected,
-  sourceSubmitted,
-  vaaSigned,
-  delivered,
-  ...homeSteps({ assetIn: HYDRATION_ASSET.wormholeUsdc, route: [] }),
-];
-
-const PIPELINES: Record<string, StepDefinition<Context>[]> = { basejump: BASEJUMP };
+const PIPELINES: Record<string, StepDefinition<Context>[]> = {
+  /** W-ETH: Sepolia USDC through Basejump; Hydration pays out Wormhole USDC. */
+  basejump: [
+    depositDetected,
+    basejumpSubmitted,
+    vaaSigned,
+    basejumpDelivered,
+    ...homeSteps({ assetIn: HYDRATION_ASSET.wormholeUsdc, route: [] }),
+  ],
+  /** W-BASE: Base Sepolia USDC through the HOLLAR PSM; Hydration mints HOLLAR. */
+  psm: [
+    depositDetected,
+    accountFunded,
+    psmSubmitted,
+    vaaSigned,
+    psmDelivered,
+    ...homeSteps({ assetIn: HYDRATION_ASSET.hollar, route: [] }),
+  ],
+};
 
 /** Until the deposit is seen only the watcher runs; after that, the pipeline of the route it chose. */
 export function pipelineOf(topUp: TopUp): StepDefinition<Context>[] {

@@ -1,5 +1,5 @@
 import { HYDRATION_ASSET } from "@onramp/chains";
-import { ensureFeeCurrency, swapAndSendHome, usdtOnAssetHub, type HomeSwap } from "@onramp/routes";
+import { feeCurrency, swapAndSendHome, usdtOnAssetHub, type HomeSwap } from "@onramp/routes";
 
 import type { Context } from "../context";
 import type { Outcome, StepDefinition } from "../pipeline";
@@ -11,9 +11,10 @@ export function homeSteps(swap: HomeSwap): StepDefinition<Context>[] {
     {
       name: "FEE_ASSET_SET",
       chain: "hydration",
-      async run({ hydration }, topUp) {
-        await ensureFeeCurrency(hydration, accountOf(topUp), swap.assetIn);
-        return { done: { feeAsset: String(swap.assetIn) } };
+      async run({ hydration }, topUp): Promise<Outcome> {
+        const feeAsset = await feeCurrency(hydration, topUp.beneficiary.ss58);
+        if (feeAsset === undefined) return { waiting: "the account cannot pay fees on Hydration yet" };
+        return { done: { feeAsset: String(feeAsset) } };
       },
     },
     {
@@ -30,6 +31,7 @@ export function homeSteps(swap: HomeSwap): StepDefinition<Context>[] {
             tx: home.txHash,
             block: String(home.blockNumber),
             blockHash: home.blockHash,
+            feeAsset: String(home.feeAsset),
             fee: home.fee.toString(),
             sold: home.sold.toString(),
             bought: home.bought.toString(),

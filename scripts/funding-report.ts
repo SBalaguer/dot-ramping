@@ -21,9 +21,9 @@ function requirements(): Requirement[] {
   const user = devUserAccount().address;
   return [
     { account: "relayer", address: relayer, chain: "sepolia", token: ETH, required: parseEther("0.01") },
-    { account: "relayer", address: relayer, chain: "baseSepolia", token: ETH, required: parseEther("0.01") },
+    { account: "relayer", address: relayer, chain: "baseSepolia", token: ETH, required: parseEther("0.005") },
     { account: "dev user", address: user, chain: "sepolia", token: ETH, required: parseEther("0.002") },
-    { account: "dev user", address: user, chain: "baseSepolia", token: ETH, required: parseEther("0.002") },
+    { account: "dev user", address: user, chain: "baseSepolia", token: ETH, required: parseEther("0.001") },
     {
       account: "dev user",
       address: user,

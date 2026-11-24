@@ -19,11 +19,12 @@
     "forks:down": "pnpm -F @onramp/forks run down",
     "check:forks": "pnpm -F @onramp/forks run check",
     "relayer:dev": "pnpm -F @onramp/relayer run dev",
-    "demo:w-eth": "tsx --env-file-if-exists=.env scripts/demo-w-eth.ts",
+    "demo:w-eth": "tsx --env-file-if-exists=.env scripts/demo.ts w-eth",
+    "demo:w-base": "tsx --env-file-if-exists=.env scripts/demo.ts w-base",
     "check:env": "tsx --env-file-if-exists=.env scripts/check-env.ts",
     "funding:report": "tsx --env-file-if-exists=.env scripts/funding-report.ts",
     "bridge:base-sepolia": "tsx --env-file-if-exists=.env scripts/bridge-to-base-sepolia.ts",
-    "deploy:sepolia": "tsx --env-file-if-exists=.env scripts/deploy-sepolia.ts",
+    "deploy:testnets": "tsx --env-file-if-exists=.env scripts/deploy-testnets.ts",
     "probe:exchange-asset": "pnpm -F @onramp/forks run probe:exchange-asset"
   },
   "dependencies": {

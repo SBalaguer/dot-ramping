@@ -2,6 +2,7 @@ import type { Address, Hex } from "viem";
 
 export type StepName =
   | "DEPOSIT_DETECTED"
+  | "ACCOUNT_FUNDED"
   | "SOURCE_SUBMITTED"
   | "VAA_SIGNED"
   | "DELIVERED"
@@ -27,15 +28,12 @@ export interface Step {
   refs: Refs;
 }
 
-export type SourceChain = "sepolia";
-export type RouteName = "basejump";
-
 export interface TopUp {
   id: Hex;
   /** With `id`, the secret every key and address of this top-up derives from. Never leaves the relayer. */
   entropy: Hex;
-  sourceChain: SourceChain;
   beneficiary: { ss58: string; accountId: Hex };
+  /** The deposit address, the same on every source chain. */
   forwarder: Address;
   refund: Address;
   routeMask: number;

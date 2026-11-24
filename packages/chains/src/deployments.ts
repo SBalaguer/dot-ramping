@@ -11,10 +11,15 @@ export interface Deployments {
     basejumpEmitter: Address;
     factory: Address;
   };
+  "base-sepolia": {
+    psmVault: Address;
+    factory: Address;
+  };
   "hydration-fork": {
     wormholeCore: Address;
     basejumpLanding: Address;
     basejumpReceiver: Address;
+    psmFacilitator: Address;
   };
 }
 
@@ -22,7 +27,8 @@ export type DeploymentName = keyof Deployments;
 
 const REQUIRED: { [K in DeploymentName]: (keyof Deployments[K])[] } = {
   sepolia: ["nttManager", "nttTransceiver", "basejumpEmitter", "factory"],
-  "hydration-fork": ["wormholeCore", "basejumpLanding", "basejumpReceiver"],
+  "base-sepolia": ["psmVault", "factory"],
+  "hydration-fork": ["wormholeCore", "basejumpLanding", "basejumpReceiver", "psmFacilitator"],
 };
 
 const fileOf = (name: DeploymentName): string =>
