@@ -5,7 +5,20 @@ import { hydrationForkEvmRpc } from "./endpoints";
 
 export const HYDRATION_EVM_CHAIN_ID = 222_222;
 
-export const HYDRATION_ASSET = { usdt: 10, weth: 20, wormholeUsdc: 21, hollar: 222 } as const;
+export const HYDRATION_PARA_ID = 2034;
+
+/** `usdtSb` is Ethereum USDT bridged by Snowbridge; `aUsdt` is USDT supplied to Hydration's money market. */
+export const HYDRATION_ASSET = {
+  usdt: 10,
+  weth: 20,
+  wormholeUsdc: 21,
+  hollar: 222,
+  aUsdt: 1002,
+  usdtSb: 1_000_767,
+} as const;
+
+/** Stableswap pool holding aUSDT with Snowbridge's USDC and USDT. */
+export const HYDRATION_USDT_SB_POOL = 103;
 
 /** HOLLAR is a GHO-style ERC-20 contract; Hydration asset 222 is this contract's balance sheet. */
 export const HOLLAR_TOKEN: Address = "0x531a654d1696ed52e7275a8cede955e82620f99a";

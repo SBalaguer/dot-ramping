@@ -8,5 +8,7 @@ export * from "./home/swap-home";
 export * from "./home/usdt-transfer";
 export * from "./psm/delivery";
 export * from "./psm/source";
+export * from "./snowbridge/relay";
+export * from "./snowbridge/xcm";
 export * from "./vaa-delivery";
 export * from "./xcm-codec";

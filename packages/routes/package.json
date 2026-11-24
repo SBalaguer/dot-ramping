@@ -11,6 +11,7 @@
     "@onramp/chains": "workspace:*",
     "@onramp/contracts": "workspace:*",
     "@onramp/keys": "workspace:*",
+    "@polkadot-api/substrate-bindings": "0.20.3",
     "polkadot-api": "^2.2.2",
     "viem": "^2.58.4"
   }

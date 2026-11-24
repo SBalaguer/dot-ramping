@@ -1,35 +1,14 @@
-import {
-  XcmV5AssetFilter,
-  XcmV5Instruction,
-  XcmV5Junction,
-  XcmV5Junctions,
-  XcmV5WildAsset,
-  XcmVersionedXcm,
-} from "@galacticcouncil/descriptors";
 import { concatHex, keccak256, type Hex } from "viem";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { BENEFICIARY_PLACEHOLDER, bindTemplate, fillTemplate } from "../src/beneficiary-template";
-import { xcmCodec, type XcmCodec, type XcmLocation } from "../src/xcm-codec";
+import { claimer, snowbridgeTemplates, transferToHydration } from "../src/snowbridge/xcm";
+import { xcmCodec, type XcmCodec } from "../src/xcm-codec";
 
 const BENEFICIARY: Hex = "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d";
 const FIXTURE = "../../../contracts/test/fixtures/snowbridge-template.json";
-
-const account = (id: Hex): XcmLocation => ({
-  parents: 0,
-  interior: XcmV5Junctions.X1(XcmV5Junction.AccountId32({ network: undefined, id })),
-});
-
-/** Refunds surplus fees and deposits everything to one account, naming it twice. */
-const depositAll = (id: Hex) =>
-  XcmVersionedXcm.V5([
-    XcmV5Instruction.DepositAsset({
-      assets: XcmV5AssetFilter.Wild(XcmV5WildAsset.AllCounted(1)),
-      beneficiary: account(id),
-    }),
-    XcmV5Instruction.RefundSurplus(),
-    XcmV5Instruction.DepositAsset({ assets: XcmV5AssetFilter.Wild(XcmV5WildAsset.All()), beneficiary: account(id) }),
-  ]);
+/** No parents, one junction, `AccountId32`, network `Some(Polkadot)`. */
+const CLAIMER_PREFIX: Hex = "0x0001010102";
 
 let codec: XcmCodec;
 beforeAll(async () => {
@@ -37,23 +16,24 @@ beforeAll(async () => {
 });
 
 describe("bindTemplate", () => {
-  it("finds every beneficiary slot of a runtime-encoded XCM and claimer", async () => {
-    const xcm = bindTemplate((id) => codec.xcm(depositAll(id)));
-    const claimer = bindTemplate((id) => codec.location(account(id)));
+  it("finds every beneficiary slot of the Snowbridge XCM and claimer as the runtime encodes them", async () => {
+    const templates = snowbridgeTemplates(codec);
+    const xcmFilled = codec.xcm(transferToHydration(BENEFICIARY));
+    const claimerFilled = codec.location(claimer(BENEFICIARY));
 
-    expect(xcm.offsets).toHaveLength(2);
-    expect(claimer).toEqual({ data: concatHex(["0x00010100", BENEFICIARY_PLACEHOLDER]), offsets: [4n] });
-    expect(fillTemplate(xcm, BENEFICIARY)).toBe(codec.xcm(depositAll(BENEFICIARY)));
-    expect(fillTemplate(claimer, BENEFICIARY)).toBe(codec.location(account(BENEFICIARY)));
+    expect(templates.xcm.offsets).toHaveLength(2);
+    expect(templates.claimer).toEqual({ data: concatHex([CLAIMER_PREFIX, BENEFICIARY_PLACEHOLDER]), offsets: [5n] });
+    expect(fillTemplate(templates.xcm, BENEFICIARY)).toBe(xcmFilled);
+    expect(fillTemplate(templates.claimer, BENEFICIARY)).toBe(claimerFilled);
 
     const fixture = {
       beneficiary: BENEFICIARY,
-      xcmTemplate: xcm.data,
-      xcmOffsets: xcm.offsets.map(Number),
-      xcmFilled: codec.xcm(depositAll(BENEFICIARY)),
-      claimerTemplate: claimer.data,
-      claimerOffsets: claimer.offsets.map(Number),
-      claimerFilled: codec.location(account(BENEFICIARY)),
+      xcmTemplate: templates.xcm.data,
+      xcmOffsets: templates.xcm.offsets.map(Number),
+      xcmFilled,
+      claimerTemplate: templates.claimer.data,
+      claimerOffsets: templates.claimer.offsets.map(Number),
+      claimerFilled,
     };
     await expect(`${JSON.stringify(fixture, null, 2)}\n`).toMatchFileSnapshot(FIXTURE);
   });
