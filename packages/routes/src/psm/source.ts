@@ -3,7 +3,7 @@ import { factoryAbi, psmVaultAbi, type Actor } from "@onramp/contracts";
 import { Route, type ForwarderParams } from "@onramp/keys";
 import { parseEventLogs, type Address, type Hash } from "viem";
 
-import { triggerForwarder } from "../forwarder";
+import { forwardOnce } from "../forwarder";
 
 export interface PsmDispatch {
   txHash: Hash;
@@ -15,17 +15,24 @@ export interface PsmDispatch {
   messageSequence: bigint;
 }
 
-/** Sends a top-up's deposit through its forwarder into the PSM vault; the only ether needed is Wormhole's message fee. */
-export async function forwardViaPsm(by: Actor, factory: Address, params: ForwarderParams): Promise<PsmDispatch> {
+/** Sends a top-up's deposit through its forwarder into the PSM vault, once; the only ether needed is Wormhole's message fee. */
+export async function forwardViaPsm(
+  by: Actor,
+  factory: Address,
+  params: ForwarderParams,
+  sinceBlock: bigint,
+): Promise<PsmDispatch> {
   const [vault] = await by.reader.readContract({
     address: factory,
     abi: factoryAbi,
     functionName: "routeConfig",
     args: [Route.Psm],
   });
-  const core = await by.reader.readContract({ address: vault, abi: psmVaultAbi, functionName: "wormhole" });
-  const value = await by.reader.readContract({ address: core, abi: wormholeCoreAbi, functionName: "messageFee" });
-  const receipt = await triggerForwarder(by, { factory, params, route: Route.Psm, value });
+  const fees = async () => {
+    const core = await by.reader.readContract({ address: vault, abi: psmVaultAbi, functionName: "wormhole" });
+    return { value: await by.reader.readContract({ address: core, abi: wormholeCoreAbi, functionName: "messageFee" }) };
+  };
+  const receipt = await forwardOnce(by, { factory, params, route: Route.Psm, sinceBlock, fees });
 
   const [deposited] = parseEventLogs({ abi: psmVaultAbi, eventName: "Deposited", logs: receipt.logs });
   if (!deposited) throw new Error(`${receipt.transactionHash} forwarded without a PSM deposit`);

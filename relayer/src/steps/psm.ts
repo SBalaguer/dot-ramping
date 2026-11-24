@@ -21,7 +21,8 @@ export const psmSubmitted: StepDefinition<Context> = {
   name: "SOURCE_SUBMITTED",
   chain: "baseSepolia",
   async run({ sources, factory }, topUp) {
-    const sent = await forwardViaPsm(sources.baseSepolia.by, factory, paramsOf(topUp));
+    const since = BigInt(refsOf(topUp, "DEPOSIT_DETECTED").block!);
+    const sent = await forwardViaPsm(sources.baseSepolia.by, factory, paramsOf(topUp), since);
     return {
       done: {
         tx: sent.txHash,

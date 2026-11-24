@@ -28,7 +28,17 @@ export const depositDetected: StepDefinition<Context> = {
       });
       if (amount === 0n) continue;
       const route = chooseRoute(amount, source.decimals, topUp.routeMask & source.routes, thresholdUsd);
-      return { done: { chain, token: source.token, amount: amount.toString(), route: ROUTE_NAMES[route] } };
+      // Forwarding comes later, so this block bounds the search for the forward from below.
+      const block = await source.by.reader.getBlockNumber();
+      return {
+        done: {
+          chain,
+          token: source.token,
+          amount: amount.toString(),
+          route: ROUTE_NAMES[route],
+          block: block.toString(),
+        },
+      };
     }
     return { waiting: "no deposit at the forwarder address yet" };
   },

@@ -3,7 +3,7 @@ import { basejumpEmitterAbi, factoryAbi, nttManagerAbi, type Actor } from "@onra
 import { Route, type ForwarderParams } from "@onramp/keys";
 import { parseEventLogs, type Address, type Hash, type PublicClient } from "viem";
 
-import { triggerForwarder } from "../forwarder";
+import { forwardOnce } from "../forwarder";
 
 /** NTT's encoding of "no transceiver instructions"; an empty byte string is rejected. */
 const NO_INSTRUCTIONS = "0x00";
@@ -40,11 +40,12 @@ export async function basejumpEtherFee(reader: PublicClient, emitter: Address, t
   return settlement + message;
 }
 
-/** Sends a top-up's deposit through its forwarder into Basejump and reports what the emitter announced. */
+/** Sends a top-up's deposit through its forwarder into Basejump, once, and reports what the emitter announced. */
 export async function forwardViaBasejump(
   by: Actor,
   factory: Address,
   params: ForwarderParams,
+  sinceBlock: bigint,
 ): Promise<BasejumpDispatch> {
   const [emitter, token] = await by.reader.readContract({
     address: factory,
@@ -52,8 +53,8 @@ export async function forwardViaBasejump(
     functionName: "routeConfig",
     args: [Route.Basejump],
   });
-  const value = await basejumpEtherFee(by.reader, emitter, token);
-  const receipt = await triggerForwarder(by, { factory, params, route: Route.Basejump, value });
+  const fees = async () => ({ value: await basejumpEtherFee(by.reader, emitter, token) });
+  const receipt = await forwardOnce(by, { factory, params, route: Route.Basejump, sinceBlock, fees });
 
   const [initiated] = parseEventLogs({ abi: basejumpEmitterAbi, eventName: "BridgeInitiated", logs: receipt.logs });
   if (!initiated) throw new Error(`${receipt.transactionHash} forwarded without a Basejump message`);

@@ -48,6 +48,7 @@ export async function checkSnowbridge(forks: PolkadotForks): Promise<string> {
     functionName: "predict",
     args: [params],
   });
+  const depositedAt = await relayer.reader.getBlockNumber();
   await send(user, { address: MAINNET_USDT, abi: tetherAbi, functionName: "transfer", args: [forwarder, DEPOSIT] });
 
   const gateway = await snowbridgeGatewayOf(relayer, factory);
@@ -58,7 +59,7 @@ export async function checkSnowbridge(forks: PolkadotForks): Promise<string> {
     amount: DEPOSIT,
     beneficiary: account.accountId,
   });
-  const sent = await forwardViaSnowbridge(relayer, factory, params, fees);
+  const sent = await forwardViaSnowbridge(relayer, factory, params, depositedAt, () => Promise.resolve(fees));
   const message = await acceptedMessage(relayer, gateway, sent.txHash);
   if (message.origin !== forwarder || message.amount !== DEPOSIT) {
     throw new Error(`the Gateway recorded ${message.amount} from ${message.origin}`);

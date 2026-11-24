@@ -54,23 +54,16 @@ export const snowbridgeSubmitted: StepDefinition<Context> = {
     const { by } = sources.ethereumFork;
     const deposit = refsOf(topUp, "DEPOSIT_DETECTED");
     const gateway = await snowbridgeGatewayOf(by, factory);
-    const fees = await quoteSnowbridgeFees(assetHub, codec, {
-      gateway,
-      origin: topUp.forwarder,
-      token: deposit.token as Address,
-      amount: BigInt(deposit.amount!),
-      beneficiary: topUp.beneficiary.accountId,
-    });
-    const sent = await forwardViaSnowbridge(by, factory, paramsOf(topUp), fees);
-    return {
-      done: {
-        tx: sent.txHash,
-        block: sent.blockNumber.toString(),
+    const quote = () =>
+      quoteSnowbridgeFees(assetHub, codec, {
         gateway,
-        executionFee: fees.executionFee.toString(),
-        relayerFee: fees.relayerFee.toString(),
-      },
-    };
+        origin: topUp.forwarder,
+        token: deposit.token as Address,
+        amount: BigInt(deposit.amount!),
+        beneficiary: topUp.beneficiary.accountId,
+      });
+    const sent = await forwardViaSnowbridge(by, factory, paramsOf(topUp), BigInt(deposit.block!), quote);
+    return { done: { tx: sent.txHash, block: sent.blockNumber.toString(), gateway } };
   },
 };
 

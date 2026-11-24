@@ -11,7 +11,8 @@ export const basejumpSubmitted: StepDefinition<Context> = {
   name: "SOURCE_SUBMITTED",
   chain: "sepolia",
   async run({ sources, factory }, topUp) {
-    const sent = await forwardViaBasejump(sources.sepolia.by, factory, paramsOf(topUp));
+    const since = BigInt(refsOf(topUp, "DEPOSIT_DETECTED").block!);
+    const sent = await forwardViaBasejump(sources.sepolia.by, factory, paramsOf(topUp), since);
     return {
       done: {
         tx: sent.txHash,

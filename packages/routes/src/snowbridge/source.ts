@@ -2,7 +2,7 @@ import { factoryAbi, type Actor } from "@onramp/contracts";
 import { Route, type ForwarderParams } from "@onramp/keys";
 import { encodeAbiParameters, type Address, type Hash } from "viem";
 
-import { triggerForwarder } from "../forwarder";
+import { forwardOnce } from "../forwarder";
 import type { SnowbridgeFees } from "./fees";
 import { gatewayMessage, type GatewayMessage } from "./relay";
 
@@ -21,20 +21,25 @@ export interface SnowbridgeDispatch {
   blockNumber: bigint;
 }
 
-/** Sends a top-up's deposit through its forwarder into the Snowbridge Gateway; the relayer pays both fees in ether. */
+/**
+ * Sends a top-up's deposit through its forwarder into the Snowbridge Gateway, once. The relayer pays both
+ * fees in ether; they are only quoted if a transaction is sent.
+ */
 export async function forwardViaSnowbridge(
   by: Actor,
   factory: Address,
   params: ForwarderParams,
-  fees: SnowbridgeFees,
+  sinceBlock: bigint,
+  quote: () => Promise<SnowbridgeFees>,
 ): Promise<SnowbridgeDispatch> {
-  const receipt = await triggerForwarder(by, {
-    factory,
-    params,
-    route: Route.Snowbridge,
-    routeArgs: encodeAbiParameters([{ type: "uint128" }, { type: "uint128" }], [fees.executionFee, fees.relayerFee]),
-    value: fees.executionFee + fees.relayerFee,
-  });
+  const fees = async () => {
+    const { executionFee, relayerFee } = await quote();
+    return {
+      value: executionFee + relayerFee,
+      routeArgs: encodeAbiParameters([{ type: "uint128" }, { type: "uint128" }], [executionFee, relayerFee]),
+    };
+  };
+  const receipt = await forwardOnce(by, { factory, params, route: Route.Snowbridge, sinceBlock, fees });
   return { txHash: receipt.transactionHash, blockNumber: receipt.blockNumber };
 }
 
