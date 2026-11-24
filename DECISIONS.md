@@ -373,3 +373,84 @@ maximal) → DepositAsset`.
 - **To verify in M6:** a fresh account holding only USDT.sb can pay the batch fee; the batch dry-runs clean
   before it is submitted.
 - **Revert:** build the XCM with the two `ExchangeAsset` hops through HDX measured in the previous entry.
+
+## 2026-11-24 — Factory owner is configured as an address
+
+- **What:** `.env` takes `OWNER_EVM_ADDRESS` instead of `OWNER_EVM_PK`. The owner supplied
+  `0xfa7eBcf05E2449e26e94A2A3B7D6Be0c259968C1`.
+- **Why:** the owner only ever signs `setRelayer`; nothing in this repo needs its key, so it does not sit on
+  the relayer's machine. The address is a constructor argument and therefore shapes the factory address.
+- **Revert:** none needed; to rotate the relayer the owner signs `setRelayer` with their own tooling.
+
+## 2026-11-24 — Wormhole NTT contracts: upstream v2.0.0, deployed with viem
+
+- **What:** `third_party/ntt` is `wormhole-foundation/native-token-transfers` pinned at `v2.0.0+evm`
+  (`c636cc1`, Apache-2.0), used read-only. `pnpm ntt:build` compiles the manager, the Wormhole transceiver and
+  the ERC-1967 proxy with the repo's own `prod` profile (via-IR; the manager exceeds EIP-170 without it).
+  `contracts/ts/bridges/ntt.ts` repeats the steps of Wormhole's `DeployWormholeNtt.s.sol` with viem.
+- **Why not the NTT CLI or the forge script:** both need the deployer key on a command line and leave the
+  addresses in a broadcast file to parse; the steps are few and are the script's, in the same order.
+- **Parameters:** locking mode, 24 h rate-limit window with the limits at maximum (the script's defaults),
+  consistency level 202 (finalized) for the settlement message, threshold 1.
+- **Revert:** remove the submodule and `ntt:build`; deploy with `ntt` CLI and record the addresses in
+  `deployments/sepolia.json`.
+
+## 2026-11-24 — W-ETH on Sepolia: what was deployed and who administers it
+
+- **What:** `pnpm deploy:sepolia` deployed, with the relayer key, the NTT manager and transceiver for Circle
+  USDC, Hydration's `BasejumpEmitter` (unmodified, behind an ERC-1967 proxy) and the forwarder factory.
+  Addresses are in `deployments/sepolia.json`. Emitter fee: 0.1 USDC per transfer, Hydration's production value.
+- **Administration:** the relayer key owns the NTT manager, the transceiver and the emitter. They stand in for
+  contracts Hydration and Wormhole run in production; the factory owner is separate (previous entry).
+- **NTT peer for Wormhole chain 73:** the manager's peer is Hydration's mainnet USDC manager
+  (`0xEcEa…28fC`), a stand-in so `transfer()` works. The settlement message is published and guardian-signed
+  for real but nobody redeems it: that needs a burning manager on the fork (M9). The transceiver's own
+  Wormhole peer is deliberately not set, because NTT allows setting it only once.
+- **Factory:** `0x74EEFEb03Dc729323573010d5C1c9267fCCe422C`, routes: Basejump on Sepolia only. M5 and M6 add
+  routes, which means a new factory and new deposit addresses each time.
+- **Gas:** Sepolia now charges about seven times mainnet gas for contract creation (38M gas for the manager),
+  at a gas price near zero. The whole deployment cost under 0.000001 ETH.
+- **Revert:** delete `deployments/sepolia.json` and run `pnpm deploy:sepolia`; it redeploys everything.
+
+## 2026-11-24 — Fork-side addresses are fixed by creation order
+
+- **What:** the Sepolia emitter must name the Hydration landing, but forks restart from the pinned block. The
+  relayer key's nonce there starts at 0, so `forks/src/setup/addresses.ts` lists the contracts in creation
+  order and derives their addresses; the Sepolia deployment reads the landing address from it without a fork
+  running. `forks:up` refuses to finish if a contract lands elsewhere or if the Sepolia emitter settles to a
+  different landing, and writes `deployments/hydration-fork.json` for the relayer.
+- **Limits:** the list is append-only. A different relayer key gives different fork addresses and needs its
+  own Sepolia deployment.
+- **Setup shortcut:** the landing's liquidity (1,000,000 Wormhole USDC, asset 21) is written with
+  `dev_setStorage`; in production the NTT settlement and governance fund it.
+- **Revert:** deploy fork contracts through a CREATE2 factory instead and drop the order list.
+
+## 2026-11-24 — Hydration leg: one signed batch, exact quote, no slippage allowance
+
+- **What:** after the bridge pays out, the per-top-up key signs one `Utility.batch_all` with
+  `Router.sell_all(asset → USDT, min = X)` and the XCM transfer of exactly `X` USDT to Asset Hub. `X` is the
+  output of a dry-run of the same sale against current state. The relayer state is `SWAPPED_AND_SENT`; HANDOFF
+  §8.1 lists `SWAPPED` and `XCM_SENT` separately.
+- **Why (deviation from HANDOFF §9, min-out = quote − 0.5%):** in a batch the amount forwarded has to be known
+  before the swap runs, so it is the swap's minimum. Any allowance below the quote would stay on Hydration.
+  With the exact quote nothing stays unless the pools move in the account's favour between quote and
+  inclusion; if they move against it the batch fails as a whole and the relayer re-quotes on retry (a failed
+  attempt still pays its fee).
+- **Fee reserve:** the fee is charged in the arriving asset at an oracle price fixed when the block is built.
+  The quote assumes the estimated fee plus 5%, priced at the rate `XcmPaymentApi.query_weight_to_asset_fee`
+  reports (it matched the charged fee exactly on the fork; the pallet's fallback price was 15% off). The unused
+  part of the reserve, about 0.0001 USDT, is swapped but not forwarded, and is below USDT's existential
+  deposit, so it is lost when the account is reaped.
+- **Observed on the fork:** a fresh account that receives Wormhole USDC pays fees in it without any setup
+  (`FEE_ASSET_SET` is a check, not a transaction); fee 0.0027 USDC; route stored on-chain for (21, 10).
+- **Revert:** split into `Router.sell` then a transfer of the resulting balance, as HANDOFF §8.1 steps 7–8.
+
+## 2026-11-24 — Relayer: SQLite through Node, HTTP through Node, one top-up at a time
+
+- **What:** persistence is `node:sqlite` (HANDOFF §10 suggests `better-sqlite3`), the API is `node:http`,
+  and the worker advances open top-ups sequentially.
+- **Why:** Node 26 ships SQLite, so there is no native module to build; five endpoints do not need a
+  framework; sequential processing keeps the relayer's nonces ordered without a nonce manager.
+- **Not yet (M7):** a crash between sending a source transaction and storing its hash is not recovered
+  automatically; refunds have no API endpoint.
+- **Revert:** swap `relayer/src/store.ts` for another store; the worker only needs `open()` and `save()`.
