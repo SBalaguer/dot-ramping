@@ -645,3 +645,17 @@ DepositAsset → beneficiary] }, RefundSurplus, DepositAsset(all ether) → bene
 - **Demo script:** Aave's Base Sepolia faucet serves an address once an hour (up to 1,000,000 USDC per
   mint), so `demo:w-base` now mints 1,000 USDC when the dev wallet runs short instead of the exact amount.
 - **Revert:** not intended.
+
+## 2026-11-24 — PSM fee float: the relayer keeps paying it in the POC only (owner decision)
+
+- **What:** this answers the production question of the 2026-11-24 PSM recipient entry. In the POC the
+  relayer keeps fronting 0.02 USDT per W-BASE top-up and the user receives the unspent part (about 0.017).
+  Beyond the POC the float must not come out of the relayer's pocket: the top-up's batch has to hand it back
+  before sending the rest home, so the user's deposit pays its own fee as on the other two routes.
+- **Why (owner):** a cost the relayer pays on every top-up can be used to empty it, by opening many small
+  top-ups.
+- **Same exposure elsewhere:** the relayer also pays source-chain gas on every route and the Snowbridge fees
+  in ether (0.000162 ETH per S-ETH top-up) without recovering them from the deposit. A production design
+  needs these charged to the user or bounded by a minimum deposit as well.
+- **How to change it:** add a `Currencies.transfer` of the float to the relayer's Hydration account to the
+  batch in `swapAndSendHome` when the fee asset is the fronted USDT, and subtract it from the amount sent.
