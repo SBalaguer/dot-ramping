@@ -44,6 +44,7 @@ describe("chooseRoute", () => {
   it("only picks a route bound into the deposit address", () => {
     expect(chooseRoute(1000n * USDC, 6, routeMask(Route.Basejump), 250)).toBe(Route.Basejump);
     expect(chooseRoute(1000n * USDC, 6, routeMask(Route.Psm), 250)).toBe(Route.Psm);
-    expect(() => chooseRoute(10n * USDC, 6, routeMask(Route.Snowbridge), 250)).toThrow(/allows no route/);
+    expect(chooseRoute(10n * USDC, 6, routeMask(Route.Snowbridge), 250)).toBe(Route.Snowbridge);
+    expect(() => chooseRoute(10n * USDC, 6, 0, 250)).toThrow(/allows no route/);
   });
 });
