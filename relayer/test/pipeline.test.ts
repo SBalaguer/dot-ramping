@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { advance, type Outcome, type StepDefinition } from "../src/pipeline";
+import { MAX_ATTEMPTS, advance, type Outcome, type StepDefinition } from "../src/pipeline";
 import { Store } from "../src/store";
 import type { StepName } from "../src/topup";
 import { createTopUp } from "../src/topups";
@@ -100,6 +100,23 @@ describe("advance", () => {
       "VAA_SIGNED",
     ]);
     expect(topUp.state).toBe("VAA_SIGNED");
+  });
+
+  it("gives up on a step after its attempts are used and leaves the top-up alone", async () => {
+    const failures = Array.from({ length: MAX_ATTEMPTS + 1 }, () => new Error("bridge paused"));
+    const { calls, steps } = scripted({ SOURCE_SUBMITTED: failures });
+    const topUp = newTopUp();
+
+    for (let round = 0; round <= MAX_ATTEMPTS; round++) {
+      clock += 60 * 60_000;
+      await advance(runner(steps), topUp);
+    }
+
+    expect(calls.filter((name) => name === "SOURCE_SUBMITTED")).toHaveLength(MAX_ATTEMPTS);
+    expect(topUp.state).toBe("FAILED");
+    expect(topUp.steps[1]).toMatchObject({ status: "failed", detail: "bridge paused", attempts: MAX_ATTEMPTS });
+    expect(topUp.steps[1]).not.toHaveProperty("retryAt");
+    expect(store.open()).toEqual([]);
   });
 
   it("resumes after a restart from what was stored, not from the beginning", async () => {

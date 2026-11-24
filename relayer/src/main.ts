@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { createApi } from "./api";
 import { connect } from "./context";
 import { pipelineOf } from "./routes";
+import { hasDeposit } from "./steps/refund";
 import { Store } from "./store";
 import type { TopUp } from "./topup";
 import { createTopUp } from "./topups";
@@ -20,14 +21,21 @@ const store = new Store(databaseFile);
 const { context, disconnect } = await connect(thresholdUsd);
 const routes = Object.values(context.sources).reduce((mask, source) => mask | source.routes, 0);
 
-const api = createApi({ store, create: () => createTopUp({ factory: context.factory, routeMask: routes }) });
+const depositHeld = (topUp: TopUp): Promise<boolean> => hasDeposit(context.sources, topUp);
+
+const api = createApi({
+  store,
+  create: () => createTopUp({ factory: context.factory, routeMask: routes }),
+  hasDeposit: depositHeld,
+});
 const save = (topUp: TopUp): void => {
   store.save(topUp);
   api.publish(topUp);
   const step = topUp.steps.at(-1);
-  console.log(`${topUp.id.slice(0, 10)} ${step?.name} ${step?.status}${step?.detail ? `: ${step.detail}` : ""}`);
+  const progress = step ? `${step.name} ${step.status}${step.detail ? `: ${step.detail}` : ""}` : topUp.state;
+  console.log(`${topUp.id.slice(0, 10)} ${progress}`);
 };
-const worker = startWorker(store, { context, pipelineOf, save }, POLL_INTERVAL_MS);
+const worker = startWorker(store, { context, pipelineOf, save }, depositHeld, POLL_INTERVAL_MS);
 
 api.server.listen(port, () => {
   console.log(`relayer ${context.hydrationEvm.wallet.account.address} listening on http://127.0.0.1:${port}`);

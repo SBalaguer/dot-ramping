@@ -12,7 +12,8 @@ export type StepName =
   | "DELIVERED"
   | "FEE_ASSET_SET"
   | "SWAPPED_AND_SENT"
-  | "COMPLETED";
+  | "COMPLETED"
+  | "REFUNDED";
 
 /** References a step leaves behind for later steps and the dashboard: hashes, sequences, amounts as decimal strings. */
 export type Refs = Record<string, string>;
@@ -21,7 +22,8 @@ export interface Step {
   name: StepName;
   /** Where the step acts, for display. */
   chain: string;
-  status: "waiting" | "retrying" | "done";
+  /** `failed` is final until an operator asks for a retry. */
+  status: "waiting" | "retrying" | "failed" | "done";
   attempts: number;
   /** Why the step is not done yet. */
   detail?: string;
@@ -41,7 +43,10 @@ export interface TopUp {
   forwarder: Address;
   refund: Address;
   routeMask: number;
-  state: "CREATED" | StepName;
+  /** The last step done, or `FAILED` once a step has used up its attempts. */
+  state: "CREATED" | StepName | "FAILED";
+  /** Set when an operator's refund request was accepted; from then on the top-up only refunds. */
+  refundRequestedAt?: number;
   steps: Step[];
   createdAt: number;
   updatedAt: number;
@@ -51,6 +56,11 @@ export type TopUpView = Omit<TopUp, "entropy">;
 
 export function viewOf({ entropy: _secret, ...view }: TopUp): TopUpView {
   return view;
+}
+
+/** How far a top-up got, whatever stopped it. */
+export function progressOf(topUp: TopUp): "CREATED" | StepName {
+  return topUp.steps.filter(({ status }) => status === "done").at(-1)?.name ?? "CREATED";
 }
 
 export function refsOf(topUp: TopUp, step: StepName): Refs {

@@ -7,6 +7,7 @@ import { basejumpDelivered, basejumpSubmitted } from "./steps/basejump";
 import { depositDetected } from "./steps/deposit";
 import { homeSteps } from "./steps/home";
 import { accountFunded, psmDelivered, psmSubmitted } from "./steps/psm";
+import { refunded } from "./steps/refund";
 import {
   arrivedOnHydration,
   deliveredAssetHub,
@@ -49,8 +50,12 @@ const PIPELINES: Record<string, StepDefinition<Context>[]> = {
   ],
 };
 
-/** Until the deposit is seen only the watcher runs; after that, the pipeline of the route it chose. */
+/**
+ * Until the deposit is seen only the watcher runs; after that, the pipeline of the route it chose. An
+ * accepted refund request replaces all of it.
+ */
 export function pipelineOf(topUp: TopUp): StepDefinition<Context>[] {
+  if (topUp.refundRequestedAt !== undefined) return [refunded];
   const detection = topUp.steps.find(({ name, status }) => name === "DEPOSIT_DETECTED" && status === "done");
   if (!detection) return [depositDetected];
   const pipeline = PIPELINES[detection.refs.route ?? ""];
