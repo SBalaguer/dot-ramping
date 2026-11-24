@@ -602,3 +602,46 @@ DepositAsset → beneficiary] }, RefundSurplus, DepositAsset(all ether) → bene
 - **New dependency:** `@polkadot-api/substrate-bindings` 0.20.3 (the version polkadot-api uses) for SCALE
   primitives in the relay port.
 - **Revert:** not applicable.
+
+## 2026-11-24 — Routing: a deposit takes the only route its chain has (owner decision)
+
+- **What:** `chooseRoute` prefers Snowbridge from the threshold up and a Wormhole route below it, and now
+  falls back to the other kind in both directions. A 20 USDT deposit on the Ethereum fork goes through
+  Snowbridge (20 → 20.000079 USDT). This supersedes the "no route" note of the S-ETH entry.
+- **Why:** nothing should be stranded. The flat Snowbridge fee on a small deposit is the operator's cost.
+- **Still true on mainnet:** the two routes carry different tokens (USDC through Basejump, USDT through
+  Snowbridge), so the threshold only picks the cheaper bridge when the user sent the token it takes.
+- **Revert:** drop `Route.Snowbridge` from the small-deposit preference in `relayer/src/routing.ts`.
+
+## 2026-11-24 — Relayer hardening (M7)
+
+- **A lost source transaction is found again.** `forwardOnce` sends a deposit on only while it is still at
+  the deposit address. If the address is empty, it looks for the forwarder's `Forwarded` event since the
+  block the deposit was detected in and continues from that transaction. So a relayer that died between
+  sending and recording neither fails nor sends twice. Tested on a local chain, and live: the relayer was
+  killed after detection, the deposit forwarded behind its back, and after a restart it completed the
+  top-up from that transaction (300 → 300.060339 USDT).
+- **The simulated relay delivers once.** Killed while the injection into Asset Hub was in flight and
+  restarted, the relayer found the message already processed and Hydration received the deposit once.
+- **Other steps were already repeatable:** a VAA that was delivered is skipped, the fee float is only sent
+  to an account without a fee currency, and the swap step does nothing when the payout asset is gone. After
+  a crash right after the swap was submitted, its transaction hash is not recorded; the outcome is.
+- **Retries are capped.** A step that fails eight times in a row (about ten minutes of backoff) is marked
+  `failed`, the top-up's state becomes `FAILED`, and the worker leaves it alone. `POST /topups/:id/retry`
+  gives it eight more.
+- **Refund.** `POST /topups/:id/refund` makes the relayer call `factory.refund` for every source chain where
+  the deposit address holds that chain's stablecoin; the state becomes `REFUNDED`. The money goes to the
+  top-up's refund address (a key derived from its seed, see 2026-11-23), never to an address from the
+  request. It is refused once the deposit has been forwarded and when the address is empty. Live: 50 USDT
+  on the Ethereum fork came back through real Tether.
+- **Requests are queued.** The API checks a refund or retry, stores it and answers 202; the worker applies
+  it between steps after checking again. Only the worker writes a top-up, so a request cannot overwrite a
+  step in progress or race a forward.
+- **Not covered:** the API has no authentication (HANDOFF calls refund "POC admin"). A top-up that never
+  receives a deposit is polled forever. A deposit that arrives after its top-up was forwarded is not picked
+  up; the refund key can still call `factory.refund` itself. Assets trapped on Asset Hub or Hydration by a
+  failed XCM have no recovery path in the relayer. A top-up whose swap keeps failing ends as `FAILED` with
+  the bridged asset in its own account on Hydration.
+- **Demo script:** Aave's Base Sepolia faucet serves an address once an hour (up to 1,000,000 USDC per
+  mint), so `demo:w-base` now mints 1,000 USDC when the dev wallet runs short instead of the exact amount.
+- **Revert:** not intended.

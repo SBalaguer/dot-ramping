@@ -39,8 +39,21 @@ pnpm demo:s-eth 300     #             300 USDT on the Ethereum fork, through Sno
 ```
 
 A top-up has one deposit address, valid on all three source chains. The chain a deposit arrives on and its
-size pick the route: Snowbridge from 250 USD up where the chain has it, a Wormhole route otherwise. The
-relayer API: `POST /topups`, `GET /topups`, `GET /topups/:id`, `GET /events` (server-sent events).
+size pick the route: Snowbridge from 250 USD up, a Wormhole route below, and whichever the chain has when it
+has only one.
+
+### Relayer API
+
+| Request                   | What it does                                                                                            |
+| ------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `POST /topups`            | Creates a top-up and returns its deposit address and Asset Hub account                                  |
+| `GET /topups`, `/:id`     | Reads top-ups with every step, its status and its references                                            |
+| `GET /events`             | Streams every change as server-sent events                                                              |
+| `POST /topups/:id/refund` | Sends what is at the deposit address to the top-up's refund address; refused once it has been forwarded |
+| `POST /topups/:id/retry`  | Gives a top-up whose step failed eight times a fresh set of attempts                                    |
+
+The relayer can be stopped at any point and picks every open top-up up where it was. The API has no
+authentication; it is meant for a local machine.
 
 S-ETH runs against mainnet forks because Snowbridge has no testnet relayers. One hop is simulated: the
 message Bridge Hub would send Asset Hub is rebuilt from the Gateway's event and injected into the Asset Hub
