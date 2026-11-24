@@ -18,6 +18,8 @@ import { loadArtifact } from "./artifacts";
 import type { FactoryConfig } from "./config";
 
 const FACTORY_SALT = stringToHex("onramp/forwarder-factory/1", { size: 32 });
+const CODE_READ_ATTEMPTS = 10;
+const CODE_READ_INTERVAL_MS = 2_000;
 
 function factoryInitCode({ owner, relayer, chains }: FactoryConfig): Hex {
   const { bytecode } = loadArtifact("DepositForwarderFactory");
@@ -43,8 +45,11 @@ export async function deployFactory(
     data: concatHex([FACTORY_SALT, factoryInitCode(config)]),
   });
   const receipt = await reader.waitForTransactionReceipt({ hash });
-  if (receipt.status !== "success" || !(await reader.getCode({ address: factory }))) {
-    throw new Error(`factory deployment ${hash} did not create ${factory}`);
+  if (receipt.status !== "success") throw new Error(`factory deployment ${hash} reverted`);
+  // A load-balanced RPC can serve the receipt before every node behind it has the block.
+  for (let attempt = 0; attempt < CODE_READ_ATTEMPTS; attempt++) {
+    if (await reader.getCode({ address: factory })) return factory;
+    await new Promise((retry) => setTimeout(retry, CODE_READ_INTERVAL_MS));
   }
-  return factory;
+  throw new Error(`factory deployment ${hash} did not create ${factory}`);
 }

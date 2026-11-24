@@ -2,7 +2,8 @@ import { toEventSignature, toFunctionSignature, type Abi } from "viem";
 import { describe, expect, it } from "vitest";
 
 import { factoryAbi, forwarderAbi } from "../abi";
-import { loadArtifact } from "../artifacts";
+import { loadAbi, loadArtifact } from "../artifacts";
+import { basejumpEmitterAbi, basejumpLandingAbi, basejumpReceiverAbi, nttManagerAbi } from "../bridges/abi";
 
 function signatures(abi: Abi): string[] {
   return abi.flatMap((item) => {
@@ -23,10 +24,14 @@ function signatures(abi: Abi): string[] {
 
 describe("hand-written ABIs", () => {
   it.each([
-    ["DepositForwarderFactory", factoryAbi],
-    ["DepositForwarder", forwarderAbi],
-  ] as const)("%s entries exist unchanged in the compiled contract", (contract, abi) => {
-    const compiled = new Set(signatures(loadArtifact(contract).abi));
+    ["DepositForwarderFactory", factoryAbi, "onramp"],
+    ["DepositForwarder", forwarderAbi, "onramp"],
+    ["BasejumpEmitter", basejumpEmitterAbi, "whm"],
+    ["BasejumpReceiver", basejumpReceiverAbi, "whm"],
+    ["BasejumpLanding", basejumpLandingAbi, "whm"],
+    ["NttManager", nttManagerAbi, "ntt"],
+  ] as const)("%s entries exist unchanged in the compiled contract", (contract, abi, build) => {
+    const compiled = new Set(signatures(loadAbi(contract, build)));
     for (const signature of signatures(abi)) expect(compiled).toContain(signature);
   });
 
