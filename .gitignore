@@ -12,3 +12,4 @@ contracts/broadcast/
 contracts/dependencies/
 forks/.cache/
 .DS_Store
+relayer/data/
