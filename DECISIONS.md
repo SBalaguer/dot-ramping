@@ -326,3 +326,32 @@ maximal) → DepositAsset`.
   writing it into the fork would be simulating a governance decision, not a setup shortcut of ours.
 - **Probe caveat learned:** a dry-run repeated with identical arguments after `dev_setStorage` is answered
   from cache, because the head hash does not change; the probe builds a block after changing storage.
+
+## 2026-11-24 — ExchangeAsset in two hops works on mainnet state, at a price
+
+- **Question (owner, after M3):** with no stored route for USDT.sb → USDT, can the XCM chain two
+  `ExchangeAsset` hops itself, through an asset that has stored routes on both sides?
+- **Method:** `pnpm probe:exchange-asset` now also dry-runs
+  `… → ExchangeAsset(all USDT.sb, want HDX) → ExchangeAsset(all HDX, want USDT) → DepositAsset` on unmodified
+  fork state. `Router.Routes` holds (HDX, USDT.sb) and (HDX, USDT); the exchanger inverts the first.
+- **Result:** `Complete` with no storage change and no signature. Both legs cross the Omnipool (HOLLAR ↔ HDX),
+  so the deposit pays its fees and price impact twice:
+
+  | USDT.sb in | USDT out   | cost   |
+  | ---------- | ---------- | ------ |
+  | 300        | 297.870    | 0.71%  |
+  | 1,000      | 991.949    | 0.81%  |
+  | 10,000     | 9,766.694  | 2.33%  |
+  | 100,000    | 85,696.602 | 14.30% |
+
+  WETH (asset 20) as the intermediate was tried once by hand: 0.75% at 300, 2.05% at 10,000, `NoDeal` at
+  100,000. USDT.sb only has stored routes from assets 0, 16, 20 and 30, all through the Omnipool, so no
+  intermediate avoids the double crossing. aUSDT (1002) and HOLLAR (222) have XCM locations but no stored
+  route to USDT.sb.
+
+- **For comparison:** the direct route `[Stableswap 103 USDT.sb → aUSDT, Aave aUSDT → USDT]`, which only a
+  signed `router.sell` can name today, returns 1000.147 USDT for 999.939 USDT.sb.
+- **Decision for M6 (default, pending the owner):** unchanged. S-ETH carries the large deposits, where the
+  XCM-only variant is most expensive, so the per-top-up key signs `router.sell` with the explicit two-pool
+  route. The two-`ExchangeAsset` XCM stays available as a signature-free variant if the owner prefers it.
+- **Revert:** drop the `via` case from `forks/src/probes/exchange-asset.ts`.

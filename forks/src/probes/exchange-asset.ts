@@ -38,26 +38,39 @@ const usdtSb = {
     XcmV5Junction.AccountKey20({ network: undefined, key: MAINNET_USDT.toLowerCase() }),
   ]),
 };
+const hdx = { parents: 0, interior: XcmV5Junctions.X1(XcmV5Junction.GeneralIndex(0n)) };
 const recipient = {
   parents: 0,
   interior: XcmV5Junctions.X1(XcmV5Junction.AccountId32({ network: undefined, id: `0x${"d4".repeat(32)}` })),
 };
 
-/** What Asset Hub would deliver for a Snowbridge USDT transfer that swaps on arrival. */
-function swapOnArrival(minOut: bigint) {
-  const fungible = XcmV3MultiassetFungibility.Fungible;
+interface Location {
+  parents: number;
+  interior: XcmV5Junctions;
+}
+const fungible = XcmV3MultiassetFungibility.Fungible;
+
+function exchangeAll(give: Location, want: Location, minOut: bigint) {
+  return XcmV5Instruction.ExchangeAsset({
+    give: XcmV5AssetFilter.Wild(XcmV5WildAsset.AllOf({ id: give, fun: XcmV2MultiassetWildFungibility.Fungible() })),
+    want: [{ id: want, fun: fungible(minOut) }],
+    maximal: true,
+  });
+}
+
+/** What Asset Hub would deliver for a Snowbridge USDT transfer that swaps on arrival, directly or through `via`. */
+function swapOnArrival(amount: bigint, minOut: bigint, via?: Location) {
+  const swaps = via
+    ? [exchangeAll(usdtSb, via, 1n), exchangeAll(via, usdt, minOut)]
+    : [exchangeAll(usdtSb, usdt, minOut)];
   return XcmVersionedXcm.V5([
-    XcmV5Instruction.ReserveAssetDeposited([{ id: usdtSb, fun: fungible(AMOUNT) }]),
+    XcmV5Instruction.ReserveAssetDeposited([{ id: usdtSb, fun: fungible(amount) }]),
     XcmV5Instruction.ClearOrigin(),
     XcmV5Instruction.BuyExecution({
       fees: { id: usdtSb, fun: fungible(5n * UNIT) },
       weight_limit: XcmV3WeightLimit.Unlimited(),
     }),
-    XcmV5Instruction.ExchangeAsset({
-      give: XcmV5AssetFilter.Wild(XcmV5WildAsset.AllOf({ id: usdtSb, fun: XcmV2MultiassetWildFungibility.Fungible() })),
-      want: [{ id: usdt, fun: fungible(minOut) }],
-      maximal: true,
-    }),
+    ...swaps,
     XcmV5Instruction.DepositAsset({ assets: XcmV5AssetFilter.Wild(XcmV5WildAsset.All()), beneficiary: recipient }),
   ]);
 }
@@ -70,12 +83,9 @@ interface DryRun {
   };
 }
 
-async function dryRun(forks: PolkadotForks, minOut: bigint): Promise<string> {
+async function dryRun(forks: PolkadotForks, message: ReturnType<typeof swapOnArrival>): Promise<string> {
   const api = forks.hydration.client.getUnsafeApi();
-  const result = (await api.apis.DryRunApi!.dry_run_xcm!(
-    XcmVersionedLocation.V5(assetHub),
-    swapOnArrival(minOut),
-  )) as DryRun;
+  const result = (await api.apis.DryRunApi!.dry_run_xcm!(XcmVersionedLocation.V5(assetHub), message)) as DryRun;
   if (!result.success) return "dry-run rejected";
 
   const { execution_result: outcome, emitted_events: events } = result.value;
@@ -83,16 +93,19 @@ async function dryRun(forks: PolkadotForks, minOut: bigint): Promise<string> {
     const failure = outcome.value.error;
     return `${outcome.type}: ${failure?.error.type} at instruction ${failure?.index}`;
   }
-  const swap = events.find((e) => e.type === "Router" && e.value.type === "Executed")?.value.value;
-  return `Complete: ${String(swap?.amount_in)} of ${USDT_SB} -> ${String(swap?.amount_out)} of ${USDT}`;
+  const swaps = events.filter((e) => e.type === "Router" && e.value.type === "Executed").map((e) => e.value.value);
+  return `Complete: ${String(swaps.at(0)?.amount_in)} of ${USDT_SB} -> ${String(swaps.at(-1)?.amount_out)} of ${USDT}`;
 }
 
 const forks = await spawnPolkadotForks();
 try {
-  const report = async (label: string, minOut: bigint) =>
-    console.log(`${label.padEnd(44)} min-out ${String(minOut).padStart(10)}: ${await dryRun(forks, minOut)}`);
+  const report = async (label: string, message: ReturnType<typeof swapOnArrival>) =>
+    console.log(`${label.padEnd(58)} ${await dryRun(forks, message)}`);
 
-  await report("mainnet state", 1n);
+  await report("mainnet state, one hop", swapOnArrival(AMOUNT, 1n));
+  for (const amount of [300n, 1000n, 10_000n, 100_000n]) {
+    await report(`mainnet state, two hops via HDX, ${amount} USDT.sb`, swapOnArrival(amount * UNIT, 1n, hdx));
+  }
 
   // The ordered-pair entry governance's `Router.force_insert_route` would store; `set_route` is call-filtered.
   await forks.hydration.setStorage({
@@ -111,7 +124,7 @@ try {
   // A new head, so the dry-runs below cannot be answered from results cached for the old state.
   await forks.hydration.newBlock();
   for (const minOut of [1n, 995n * UNIT, 1005n * UNIT]) {
-    await report("with a stored route USDT <-> USDT.sb", minOut);
+    await report(`with a stored route, one hop, min-out ${minOut}`, swapOnArrival(AMOUNT, minOut));
   }
 } finally {
   await teardownPolkadotForks(forks);
