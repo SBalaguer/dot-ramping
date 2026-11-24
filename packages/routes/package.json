@@ -8,7 +8,9 @@
   },
   "dependencies": {
     "@galacticcouncil/descriptors": "2.7.0",
+    "@onramp/chains": "workspace:*",
     "@onramp/contracts": "workspace:*",
+    "@onramp/keys": "workspace:*",
     "polkadot-api": "^2.2.2",
     "viem": "^2.58.4"
   }

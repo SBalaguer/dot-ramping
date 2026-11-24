@@ -1,3 +1,6 @@
 [submodule "third_party/whm"]
 	path = third_party/whm
 	url = https://github.com/galacticcouncil/whm
+[submodule "third_party/ntt"]
+	path = third_party/ntt
+	url = https://github.com/wormhole-foundation/native-token-transfers.git

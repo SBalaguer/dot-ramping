@@ -7,7 +7,9 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@galacticcouncil/descriptors": "2.7.0",
     "@snowbridge/registry": "1.2.4",
+    "polkadot-api": "^2.2.2",
     "viem": "^2.58.4"
   }
 }

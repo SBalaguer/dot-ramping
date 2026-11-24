@@ -20,9 +20,18 @@ importers:
       '@onramp/chains':
         specifier: workspace:*
         version: link:packages/chains
+      '@onramp/contracts':
+        specifier: workspace:*
+        version: link:contracts
       '@onramp/forks':
         specifier: workspace:*
         version: link:forks
+      '@onramp/keys':
+        specifier: workspace:*
+        version: link:packages/keys
+      '@onramp/routes':
+        specifier: workspace:*
+        version: link:packages/routes
       polkadot-api:
         specifier: ^2.2.2
         version: 2.2.2(esbuild@0.28.2)(rxjs@7.8.2)
@@ -79,6 +88,15 @@ importers:
       '@onramp/chains':
         specifier: workspace:*
         version: link:../packages/chains
+      '@onramp/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@onramp/keys':
+        specifier: workspace:*
+        version: link:../packages/keys
+      '@onramp/routes':
+        specifier: workspace:*
+        version: link:../packages/routes
       '@polkadot-labs/hdkd':
         specifier: ^0.0.32
         version: 0.0.32
@@ -94,9 +112,15 @@ importers:
 
   packages/chains:
     dependencies:
+      '@galacticcouncil/descriptors':
+        specifier: 2.7.0
+        version: 2.7.0
       '@snowbridge/registry':
         specifier: 1.2.4
         version: 1.2.4
+      polkadot-api:
+        specifier: ^2.2.2
+        version: 2.2.2(esbuild@0.28.2)(rxjs@7.8.2)
       viem:
         specifier: ^2.58.4
         version: 2.58.4(typescript@5.9.3)(zod@3.25.76)
@@ -121,9 +145,15 @@ importers:
       '@galacticcouncil/descriptors':
         specifier: 2.7.0
         version: 2.7.0
+      '@onramp/chains':
+        specifier: workspace:*
+        version: link:../chains
       '@onramp/contracts':
         specifier: workspace:*
         version: link:../../contracts
+      '@onramp/keys':
+        specifier: workspace:*
+        version: link:../keys
       polkadot-api:
         specifier: ^2.2.2
         version: 2.2.2(esbuild@0.28.2)(rxjs@7.8.2)
@@ -131,7 +161,23 @@ importers:
         specifier: ^2.58.4
         version: 2.58.4(typescript@5.9.3)(zod@3.25.76)
 
-  relayer: {}
+  relayer:
+    dependencies:
+      '@onramp/chains':
+        specifier: workspace:*
+        version: link:../packages/chains
+      '@onramp/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@onramp/keys':
+        specifier: workspace:*
+        version: link:../packages/keys
+      '@onramp/routes':
+        specifier: workspace:*
+        version: link:../packages/routes
+      viem:
+        specifier: ^2.58.4
+        version: 2.58.4(typescript@5.9.3)(zod@3.25.76)
 
   third_party/whm/chopsticks:
     dependencies:
@@ -3769,7 +3815,7 @@ snapshots:
 
   '@scure/bip32@1.7.0':
     dependencies:
-      '@noble/curves': 1.9.1
+      '@noble/curves': 1.9.7
       '@noble/hashes': 1.8.0
       '@scure/base': 1.2.6
 

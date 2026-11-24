@@ -8,8 +8,9 @@
     "node": "26.x"
   },
   "scripts": {
-    "bootstrap": "pnpm -F @onramp/contracts run deps && pnpm whm:build",
+    "bootstrap": "pnpm -F @onramp/contracts run deps && pnpm whm:build && pnpm ntt:build",
     "whm:build": "cd third_party/whm/contracts && forge soldeer install && git checkout -- soldeer.lock && forge build",
+    "ntt:build": "git -C third_party/ntt submodule update --init --depth 1 && cd third_party/ntt/evm && FOUNDRY_PROFILE=prod forge build src/NttManager/NttManager.sol src/Transceiver/WormholeTransceiver/WormholeTransceiver.sol lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol",
     "lint": "eslint . && prettier --check . && pnpm -F @onramp/contracts run lint",
     "format": "prettier --write . && forge fmt --root contracts",
     "typecheck": "tsc -p tsconfig.json",
@@ -17,14 +18,20 @@
     "forks:up": "pnpm -F @onramp/forks run up",
     "forks:down": "pnpm -F @onramp/forks run down",
     "check:forks": "pnpm -F @onramp/forks run check",
+    "relayer:dev": "pnpm -F @onramp/relayer run dev",
+    "demo:w-eth": "tsx --env-file-if-exists=.env scripts/demo-w-eth.ts",
     "check:env": "tsx --env-file-if-exists=.env scripts/check-env.ts",
     "funding:report": "tsx --env-file-if-exists=.env scripts/funding-report.ts",
+    "deploy:sepolia": "tsx --env-file-if-exists=.env scripts/deploy-sepolia.ts",
     "probe:exchange-asset": "pnpm -F @onramp/forks run probe:exchange-asset"
   },
   "dependencies": {
     "@galacticcouncil/descriptors": "2.7.0",
     "@onramp/chains": "workspace:*",
+    "@onramp/contracts": "workspace:*",
     "@onramp/forks": "workspace:*",
+    "@onramp/keys": "workspace:*",
+    "@onramp/routes": "workspace:*",
     "polkadot-api": "^2.2.2",
     "viem": "^2.58.4"
   },
