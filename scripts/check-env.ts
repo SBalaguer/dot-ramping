@@ -6,6 +6,7 @@ import {
   MAINNET_USDT,
   SEPOLIA_USDC,
   WORMHOLE_TESTNET,
+  devUserAccount,
   factoryOwner,
   gatewayAbi,
   latestSignedVaa,
@@ -17,10 +18,10 @@ import {
   type EvmChainKey,
 } from "@onramp/chains";
 import { basejumpEmitterAbi, factoryAbi, nttManagerAbi, psmVaultAbi } from "@onramp/contracts";
-import { forkContracts, spawnEthereumFork } from "@onramp/forks";
+import { forkContracts, setUpEthereumFork, spawnEthereumFork } from "@onramp/forks";
 import { Route } from "@onramp/keys";
 import { basejumpEtherFee } from "@onramp/routes";
-import { isAddressEqual, keccak256, pad, zeroHash } from "viem";
+import { isAddressEqual, keccak256, pad, size, zeroHash } from "viem";
 
 type Testnet = keyof typeof WORMHOLE_TESTNET;
 
@@ -151,6 +152,24 @@ async function gatewayOnFork(forkBlock: number): Promise<string> {
   return `fork #${head}, Gateway ${gateway.address}: mode normal, V2 outbound nonce ${nonce}, USDT registered`;
 }
 
+/** S-ETH: the factory lands on the Ethereum fork at the testnets' address and routes only to the real Gateway. */
+async function ethereumForkDeployment(): Promise<string> {
+  const client = publicClient("ethereumFork");
+  const factory = await setUpEthereumFork(relayerAccount(), devUserAccount().address);
+  if (!isAddressEqual(factory, readDeployment("sepolia").factory)) {
+    throw new Error(`the factory lands at ${factory}, not at the testnets' address; run pnpm deploy:testnets`);
+  }
+  const factoryContract = { address: factory, abi: factoryAbi } as const;
+  const [[bridge, token], [xcm, claimer]] = await Promise.all([
+    client.readContract({ ...factoryContract, functionName: "routeConfig", args: [Route.Snowbridge] }),
+    client.readContract({ ...factoryContract, functionName: "snowbridgeTemplates" }),
+  ]);
+  if (!isAddressEqual(bridge, snowbridgeGateway()) || !isAddressEqual(token, MAINNET_USDT)) {
+    throw new Error(`factory routes Snowbridge to ${bridge} with token ${token}`);
+  }
+  return `factory ${factory} (same as the testnets) -> Gateway ${bridge}; XCM template of ${size(xcm.data)} bytes with ${xcm.offsets.length} beneficiary slots, claimer with ${claimer.offsets.length}`;
+}
+
 async function hydrationPaseoDead(): Promise<string> {
   const response = await fetch(HYDRATION_PASEO_RPC, {
     method: "POST",
@@ -187,6 +206,7 @@ try {
     await report("W-ETH deployment on Sepolia", sepoliaDeployment),
     await report("W-BASE deployment on Base Sepolia", baseSepoliaDeployment),
     await report("Snowbridge Gateway on Ethereum fork", () => gatewayOnFork(fork.spec.block)),
+    await report("S-ETH deployment on the Ethereum fork", ethereumForkDeployment),
     await report("Hydration Paseo is dead", hydrationPaseoDead),
   ];
   process.exitCode = results.every(Boolean) ? 0 : 1;

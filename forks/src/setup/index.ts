@@ -10,6 +10,7 @@ import { deployPsmDestination } from "./psm";
 import { deployTestnetWormholeCore } from "./wormhole-core";
 
 export { forkContracts } from "./addresses";
+export { setUpEthereumFork } from "./ethereum";
 
 /**
  * Everything the Hydration fork needs beyond mainnet state, deployed by `operator` with real transactions and

@@ -21,6 +21,7 @@
     "relayer:dev": "pnpm -F @onramp/relayer run dev",
     "demo:w-eth": "tsx --env-file-if-exists=.env scripts/demo.ts w-eth",
     "demo:w-base": "tsx --env-file-if-exists=.env scripts/demo.ts w-base",
+    "demo:s-eth": "tsx --env-file-if-exists=.env scripts/demo.ts s-eth",
     "check:env": "tsx --env-file-if-exists=.env scripts/check-env.ts",
     "funding:report": "tsx --env-file-if-exists=.env scripts/funding-report.ts",
     "bridge:base-sepolia": "tsx --env-file-if-exists=.env scripts/bridge-to-base-sepolia.ts",

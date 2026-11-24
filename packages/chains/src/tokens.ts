@@ -1,4 +1,4 @@
-import type { Address } from "viem";
+import { parseAbi, type Address } from "viem";
 
 /** Circle's testnet USDC on Sepolia; the W-ETH deposit asset. */
 export const SEPOLIA_USDC: Address = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238";
@@ -7,6 +7,12 @@ export const SEPOLIA_USDC: Address = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
 export const BASE_SEPOLIA_USDC: Address = "0xba50Cd2A20f6DA35D788639E581bca8d0B5d4D5f";
 
 export const MAINNET_USDT: Address = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+
+/** Tether's `transfer` returns nothing, unlike the ERC-20 standard's, so the standard ABI cannot decode it. */
+export const tetherAbi = parseAbi([
+  "function transfer(address to, uint256 value)",
+  "function balanceOf(address who) view returns (uint256)",
+]);
 
 /** Aave v3's pool on Base Sepolia; the PSM vault supplies its idle USDC here and reads Aave's oracle. */
 export const BASE_SEPOLIA_AAVE_POOL: Address = "0x8bAB6d1b75f19e9eD9fCe8b9BD338844fF79aE27";

@@ -23,7 +23,7 @@ import {
 } from "@onramp/contracts";
 import { parseAbi } from "viem";
 import { forkContracts } from "@onramp/forks";
-import { factoryConfig } from "@onramp/routes";
+import { factoryConfig, snowbridgeTemplates, xcmCodec } from "@onramp/routes";
 
 const USDC_DECIMALS = 6;
 /** Flat Basejump fee per transfer, the value Hydration runs in production (0.1 USDC). */
@@ -99,10 +99,8 @@ async function deployBaseSepoliaBridges(): Promise<Deployments["base-sepolia"]["
   return deployment.psmVault!;
 }
 
-const config = factoryConfig(factoryOwner(), relayer.address, {
-  basejumpEmitter: await deploySepoliaBridges(),
-  psmVault: await deployBaseSepoliaBridges(),
-});
+const bridges = { basejumpEmitter: await deploySepoliaBridges(), psmVault: await deployBaseSepoliaBridges() };
+const config = factoryConfig(factoryOwner(), relayer.address, bridges, snowbridgeTemplates(await xcmCodec()));
 for (const [chain, name] of [
   ["sepolia", "sepolia"],
   ["baseSepolia", "base-sepolia"],

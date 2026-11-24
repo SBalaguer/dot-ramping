@@ -1,5 +1,6 @@
 import {
   BASE_SEPOLIA_USDC,
+  MAINNET_USDT,
   SEPOLIA_USDC,
   connectAssetHub,
   connectHydration,
@@ -11,9 +12,12 @@ import {
 } from "@onramp/chains";
 import { actor, factoryAbi, type Actor } from "@onramp/contracts";
 import { Route, routeMask } from "@onramp/keys";
-import { isAddressEqual, zeroAddress, type Address } from "viem";
+import { xcmCodec, type XcmCodec } from "@onramp/routes";
+import type { PolkadotClient } from "polkadot-api";
+import { isAddressEqual, zeroAddress, type Account, type Address } from "viem";
 
-export type SourceChain = "sepolia" | "baseSepolia";
+/** "Ethereum" is two environments in this POC: Sepolia for Basejump and a mainnet fork for Snowbridge. */
+export type SourceChain = "sepolia" | "baseSepolia" | "ethereumFork";
 
 /** A chain deposits arrive on: the relayer's account there, the stablecoin watched and the routes the factory has. */
 export interface Source {
@@ -31,11 +35,19 @@ export interface Context {
   hydrationEvm: Actor;
   hydration: HydrationApi;
   assetHub: AssetHubApi;
+  /** Raw access to the Asset Hub fork, for the simulated relay hop. */
+  assetHubClient: PolkadotClient;
+  codec: XcmCodec;
   deployed: Deployments["hydration-fork"];
   thresholdUsd: number;
 }
 
-const USDC_DECIMALS = 6;
+const STABLECOIN_DECIMALS = 6;
+const DEPOSIT_TOKENS: Record<SourceChain, Address> = {
+  sepolia: SEPOLIA_USDC,
+  baseSepolia: BASE_SEPOLIA_USDC,
+  ethereumFork: MAINNET_USDT,
+};
 
 /** The routes the factory was deployed with on one chain; a deposit there can take no other. */
 async function configuredRoutes(by: Actor, factory: Address): Promise<number> {
@@ -53,37 +65,41 @@ async function configuredRoutes(by: Actor, factory: Address): Promise<number> {
   return routeMask(...configured.flat());
 }
 
+async function source(chain: SourceChain, relayer: Account, factory: Address): Promise<Source> {
+  const by = actor(chain, relayer);
+  if (!(await by.reader.getCode({ address: factory }))) throw new Error(`no factory at ${factory} on ${chain}`);
+  return {
+    by,
+    token: DEPOSIT_TOKENS[chain],
+    decimals: STABLECOIN_DECIMALS,
+    routes: await configuredRoutes(by, factory),
+  };
+}
+
 export async function connect(thresholdUsd: number): Promise<{ context: Context; disconnect: () => void }> {
   const relayer = relayerAccount();
   const { factory } = readDeployment("sepolia");
   if (!isAddressEqual(factory, readDeployment("base-sepolia").factory)) {
     throw new Error("the factory address differs between Sepolia and Base Sepolia; deposit addresses would too");
   }
-  const sepolia = actor("sepolia", relayer);
-  const baseSepolia = actor("baseSepolia", relayer);
   const hydration = connectHydration();
   const assetHub = connectAssetHub();
+  const [sepolia, baseSepolia, ethereumFork, codec] = await Promise.all([
+    source("sepolia", relayer, factory),
+    source("baseSepolia", relayer, factory),
+    source("ethereumFork", relayer, factory),
+    xcmCodec(),
+  ]);
 
   return {
     context: {
-      sources: {
-        sepolia: {
-          by: sepolia,
-          token: SEPOLIA_USDC,
-          decimals: USDC_DECIMALS,
-          routes: await configuredRoutes(sepolia, factory),
-        },
-        baseSepolia: {
-          by: baseSepolia,
-          token: BASE_SEPOLIA_USDC,
-          decimals: USDC_DECIMALS,
-          routes: await configuredRoutes(baseSepolia, factory),
-        },
-      },
+      sources: { sepolia, baseSepolia, ethereumFork },
       factory,
       hydrationEvm: actor("hydrationFork", relayer),
       hydration: hydration.api,
       assetHub: assetHub.api,
+      assetHubClient: assetHub.client,
+      codec,
       deployed: readDeployment("hydration-fork"),
       thresholdUsd,
     },

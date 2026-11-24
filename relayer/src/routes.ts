@@ -1,4 +1,5 @@
 import { HYDRATION_ASSET } from "@onramp/chains";
+import { usdtSbHomeSwap } from "@onramp/routes";
 
 import type { Context } from "./context";
 import type { StepDefinition } from "./pipeline";
@@ -6,6 +7,14 @@ import { basejumpDelivered, basejumpSubmitted } from "./steps/basejump";
 import { depositDetected } from "./steps/deposit";
 import { homeSteps } from "./steps/home";
 import { accountFunded, psmDelivered, psmSubmitted } from "./steps/psm";
+import {
+  arrivedOnHydration,
+  deliveredAssetHub,
+  dryRunOk,
+  gatewayEvent,
+  relaySimulated,
+  snowbridgeSubmitted,
+} from "./steps/snowbridge";
 import { vaaSigned } from "./steps/vaa";
 import type { TopUp } from "./topup";
 
@@ -26,6 +35,17 @@ const PIPELINES: Record<string, StepDefinition<Context>[]> = {
     vaaSigned,
     psmDelivered,
     ...homeSteps({ assetIn: HYDRATION_ASSET.hollar, route: [] }),
+  ],
+  /** S-ETH: USDT on the Ethereum fork through the Snowbridge Gateway; Hydration receives bridged USDT. */
+  snowbridge: [
+    depositDetected,
+    snowbridgeSubmitted,
+    gatewayEvent,
+    relaySimulated,
+    dryRunOk,
+    deliveredAssetHub,
+    arrivedOnHydration,
+    ...homeSteps(usdtSbHomeSwap),
   ],
 };
 
