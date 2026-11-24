@@ -3,6 +3,7 @@ export * from "./artifacts";
 export * from "./bridges/abi";
 export * from "./bridges/basejump";
 export * from "./bridges/ntt";
+export * from "./bridges/psm";
 export * from "./config";
 export * from "./deploy";
 export * from "./transact";

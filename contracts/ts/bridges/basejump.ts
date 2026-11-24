@@ -6,15 +6,15 @@ import { createBehindProxy, send, type Actor } from "../transact";
 /** Hydration's Basejump contracts (`third_party/whm`), unmodified. Each is UUPS and owned by whoever deploys it. */
 
 export function deployBasejumpEmitter(by: Actor, wormholeCore: Address): Promise<Address> {
-  return createBehindProxy(by, "BasejumpEmitter", "whm", [wormholeCore]);
+  return createBehindProxy(by, "BasejumpEmitter", "whm", { functionName: "initialize", args: [wormholeCore] });
 }
 
 export function deployBasejumpLanding(by: Actor): Promise<Address> {
-  return createBehindProxy(by, "BasejumpLanding", "whm", []);
+  return createBehindProxy(by, "BasejumpLanding", "whm", { functionName: "initialize", args: [] });
 }
 
 export function deployBasejumpReceiver(by: Actor, wormholeCore: Address): Promise<Address> {
-  return createBehindProxy(by, "BasejumpReceiver", "whm", [wormholeCore]);
+  return createBehindProxy(by, "BasejumpReceiver", "whm", { functionName: "initialize", args: [wormholeCore] });
 }
 
 export interface EmitterRoute {

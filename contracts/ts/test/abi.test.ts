@@ -3,7 +3,14 @@ import { describe, expect, it } from "vitest";
 
 import { factoryAbi, forwarderAbi } from "../abi";
 import { loadAbi, loadArtifact } from "../artifacts";
-import { basejumpEmitterAbi, basejumpLandingAbi, basejumpReceiverAbi, nttManagerAbi } from "../bridges/abi";
+import {
+  basejumpEmitterAbi,
+  basejumpLandingAbi,
+  basejumpReceiverAbi,
+  nttManagerAbi,
+  psmFacilitatorAbi,
+  psmVaultAbi,
+} from "../bridges/abi";
 
 function signatures(abi: Abi): string[] {
   return abi.flatMap((item) => {
@@ -30,6 +37,8 @@ describe("hand-written ABIs", () => {
     ["BasejumpReceiver", basejumpReceiverAbi, "whm"],
     ["BasejumpLanding", basejumpLandingAbi, "whm"],
     ["NttManager", nttManagerAbi, "ntt"],
+    ["HollarBaseVault", psmVaultAbi, "whm"],
+    ["HollarBaseFacilitator", psmFacilitatorAbi, "whm"],
   ] as const)("%s entries exist unchanged in the compiled contract", (contract, abi, build) => {
     const compiled = new Set(signatures(loadAbi(contract, build)));
     for (const signature of signatures(abi)) expect(compiled).toContain(signature);

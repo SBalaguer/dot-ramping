@@ -28,3 +28,28 @@ export const nttManagerAbi = parseAbi([
   "function getPeer(uint16 chainId) view returns (NttManagerPeer)",
   "function quoteDeliveryPrice(uint16 recipientChain, bytes transceiverInstructions) view returns (uint256[], uint256)",
 ]);
+
+export const psmVaultAbi = parseAbi([
+  "function wormhole() view returns (address)",
+  "function usdc() view returns (address)",
+  "function depositsPaused() view returns (bool)",
+  "function depositAllowance() view returns (uint256)",
+  "function authorizedEmitters(uint16 sourceChain) view returns (bytes32)",
+  "event Deposited(address indexed from, bytes32 indexed recipient, uint256 amount, uint64 sequence)",
+]);
+
+export const psmFacilitatorAbi = parseAbi([
+  "function wormhole() view returns (address)",
+  "function authorizedEmitters(uint16 sourceChain) view returns (bytes32)",
+  "function processedVaas(bytes32 vaaHash) view returns (bool)",
+  "function mintHeadroom() view returns (uint256)",
+  "function receiveMessage(bytes vaa)",
+  "event Minted(address indexed recipient, uint256 usdcAmount, uint256 hollarAmount)",
+  "event MintQueued(uint256 indexed id, address indexed recipient, uint256 usdcAmount, uint8 reason)",
+]);
+
+export const ghoTokenAbi = parseAbi([
+  "struct Facilitator { uint128 bucketCapacity; uint128 bucketLevel; string label; }",
+  "function addFacilitator(address facilitator, string label, uint128 bucketCapacity)",
+  "function getFacilitator(address facilitator) view returns (Facilitator)",
+]);

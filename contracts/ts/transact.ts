@@ -51,18 +51,19 @@ export async function send(by: Actor, call: Call): Promise<TransactionReceipt> {
   return confirmed(by, await by.wallet.writeContract(request));
 }
 
+export interface Initializer {
+  functionName: string;
+  args: readonly unknown[];
+}
+
 /** Deploys a UUPS implementation and an ERC-1967 proxy that initializes it, both from the same build. */
 export async function createBehindProxy(
   by: Actor,
   contract: string,
   build: Build,
-  initializerArgs: readonly unknown[],
+  initializer: Initializer,
 ): Promise<Address> {
   const implementation = loadArtifact(contract, build);
-  const initializer = encodeFunctionData({
-    abi: implementation.abi,
-    functionName: "initialize",
-    args: initializerArgs,
-  });
-  return create(by, loadArtifact("ERC1967Proxy", build), [await create(by, implementation), initializer]);
+  const initialization = encodeFunctionData({ abi: implementation.abi, ...initializer });
+  return create(by, loadArtifact("ERC1967Proxy", build), [await create(by, implementation), initialization]);
 }

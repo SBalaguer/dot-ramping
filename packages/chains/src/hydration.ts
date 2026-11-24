@@ -5,7 +5,10 @@ import { hydrationForkEvmRpc } from "./endpoints";
 
 export const HYDRATION_EVM_CHAIN_ID = 222_222;
 
-export const HYDRATION_ASSET = { usdt: 10, weth: 20, wormholeUsdc: 21 } as const;
+export const HYDRATION_ASSET = { usdt: 10, weth: 20, wormholeUsdc: 21, hollar: 222 } as const;
+
+/** HOLLAR is a GHO-style ERC-20 contract; Hydration asset 222 is this contract's balance sheet. */
+export const HOLLAR_TOKEN: Address = "0x531a654d1696ed52e7275a8cede955e82620f99a";
 
 /** Hydration's mainnet NTT manager for USDC, the settlement counterpart of Ethereum's locking manager. */
 export const HYDRATION_USDC_NTT_MANAGER: Address = "0xEcEab64542A875C4472671D9Ed1E690cdD4e28fC";
