@@ -1,15 +1,9 @@
-import { Route } from "@onramp/keys";
 import { erc20Abi } from "viem";
 
 import type { Context, SourceChain } from "../context";
 import type { StepDefinition } from "../pipeline";
 import { chooseRoute } from "../routing";
-
-export const ROUTE_NAMES = {
-  [Route.Snowbridge]: "snowbridge",
-  [Route.Basejump]: "basejump",
-  [Route.Psm]: "psm",
-} as const;
+import { ROUTE_NAMES } from "../views";
 
 /**
  * The deposit is whatever stablecoin sits at the forwarder address on any source chain. The chain it arrived

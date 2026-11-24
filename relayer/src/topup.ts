@@ -52,12 +52,6 @@ export interface TopUp {
   updatedAt: number;
 }
 
-export type TopUpView = Omit<TopUp, "entropy">;
-
-export function viewOf({ entropy: _secret, ...view }: TopUp): TopUpView {
-  return view;
-}
-
 /** How far a top-up got, whatever stopped it. */
 export function progressOf(topUp: TopUp): "CREATED" | StepName {
   return topUp.steps.filter(({ status }) => status === "done").at(-1)?.name ?? "CREATED";

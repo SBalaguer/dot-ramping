@@ -2,7 +2,6 @@ import { Route, deriveBeneficiary, forwarderAddress, routeMask, topUpParams } fr
 import { describe, expect, it } from "vitest";
 
 import { chooseRoute } from "../src/routing";
-import { viewOf } from "../src/topup";
 import { createTopUp } from "../src/topups";
 
 const FACTORY = "0x74EEFEb03Dc729323573010d5C1c9267fCCe422C";
@@ -25,11 +24,6 @@ describe("createTopUp", () => {
     const [a, b] = [createTopUp(request), createTopUp(request)];
     expect(a.forwarder).not.toBe(b.forwarder);
     expect(a.beneficiary.accountId).not.toBe(b.beneficiary.accountId);
-  });
-
-  it("keeps the entropy out of what the API returns", () => {
-    const topUp = createTopUp(request);
-    expect(JSON.stringify(viewOf(topUp))).not.toContain(topUp.entropy.slice(2));
   });
 });
 

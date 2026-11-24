@@ -16,13 +16,17 @@ import { xcmCodec, type XcmCodec } from "@onramp/routes";
 import type { PolkadotClient } from "polkadot-api";
 import { isAddressEqual, zeroAddress, type Account, type Address } from "viem";
 
-/** "Ethereum" is two environments in this POC: Sepolia for Basejump and a mainnet fork for Snowbridge. */
-export type SourceChain = "sepolia" | "baseSepolia" | "ethereumFork";
+import type { SourceChain } from "./api-types";
+
+export type { SourceChain } from "./api-types";
 
 /** A chain deposits arrive on: the relayer's account there, the stablecoin watched and the routes the factory has. */
 export interface Source {
   by: Actor;
+  /** For display. */
+  name: string;
   token: Address;
+  symbol: string;
   decimals: number;
   routes: number;
 }
@@ -43,10 +47,10 @@ export interface Context {
 }
 
 const STABLECOIN_DECIMALS = 6;
-const DEPOSIT_TOKENS: Record<SourceChain, Address> = {
-  sepolia: SEPOLIA_USDC,
-  baseSepolia: BASE_SEPOLIA_USDC,
-  ethereumFork: MAINNET_USDT,
+const SOURCES: Record<SourceChain, Pick<Source, "name" | "token" | "symbol">> = {
+  sepolia: { name: "Sepolia", token: SEPOLIA_USDC, symbol: "USDC" },
+  baseSepolia: { name: "Base Sepolia", token: BASE_SEPOLIA_USDC, symbol: "USDC" },
+  ethereumFork: { name: "Ethereum (mainnet fork)", token: MAINNET_USDT, symbol: "USDT" },
 };
 
 /** The routes the factory was deployed with on one chain; a deposit there can take no other. */
@@ -68,12 +72,7 @@ async function configuredRoutes(by: Actor, factory: Address): Promise<number> {
 async function source(chain: SourceChain, relayer: Account, factory: Address): Promise<Source> {
   const by = actor(chain, relayer);
   if (!(await by.reader.getCode({ address: factory }))) throw new Error(`no factory at ${factory} on ${chain}`);
-  return {
-    by,
-    token: DEPOSIT_TOKENS[chain],
-    decimals: STABLECOIN_DECIMALS,
-    routes: await configuredRoutes(by, factory),
-  };
+  return { by, ...SOURCES[chain], decimals: STABLECOIN_DECIMALS, routes: await configuredRoutes(by, factory) };
 }
 
 export async function connect(thresholdUsd: number): Promise<{ context: Context; disconnect: () => void }> {

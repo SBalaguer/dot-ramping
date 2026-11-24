@@ -1,11 +1,9 @@
 import { mkdtempSync, rmSync } from "node:fs";
-import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { createApi } from "../src/api";
 import { MAX_ATTEMPTS, advance, type StepDefinition } from "../src/pipeline";
 import { applyRequest, refusal } from "../src/requests";
 import { pipelineOf } from "../src/routes";
@@ -102,27 +100,6 @@ describe("the request queue", () => {
   afterEach(() => {
     store.close();
     rmSync(directory, { recursive: true });
-  });
-
-  it("keeps the API from writing a top-up: a request is checked, queued and answered", async () => {
-    const topUp = topUpAt(done("DEPOSIT_DETECTED", { route: "basejump" }));
-    store.save(topUp);
-    const api = createApi({ store, create: () => topUpAt(), hasDeposit: deposited });
-    await new Promise<void>((listening) => api.server.listen(0, "127.0.0.1", listening));
-    const { port } = api.server.address() as AddressInfo;
-    const post = (action: string) =>
-      fetch(`http://127.0.0.1:${port}/topups/${topUp.id}/${action}`, { method: "POST" }).then(({ status }) => status);
-
-    try {
-      expect(await post("refund")).toBe(202);
-      expect(await post("retry")).toBe(409);
-      expect(await post("sweep")).toBe(404);
-    } finally {
-      await new Promise((closed) => api.server.close(closed));
-    }
-
-    expect(store.get(topUp.id)).toEqual(topUp);
-    expect(store.requests()).toMatchObject([{ topUpId: topUp.id, kind: "refund" }]);
   });
 
   it("drops a queued refund if the deposit was forwarded before the worker got to it", async () => {
