@@ -33,17 +33,18 @@ The relayer API: `POST /topups`, `GET /topups`, `GET /topups/:id`, `GET /events`
 
 ## Commands
 
-| Command                             | What it does                                                                                                      |
-| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `pnpm test`                         | Lint, typecheck, TypeScript tests and Foundry tests                                                               |
-| `pnpm check:env`                    | Verifies the testnet RPCs, Wormhole, the CREATE2 deployer, our Sepolia deployment and the Snowbridge Gateway      |
-| `pnpm check:forks`                  | Spawns the Hydration and Asset Hub forks and proves HRMP delivery, the swap home, EVM writes and VAA verification |
-| `pnpm forks:up` / `pnpm forks:down` | Starts and stops the Ethereum (anvil), Hydration and Asset Hub mainnet forks                                      |
-| `pnpm relayer:dev`                  | Runs the relayer against the forks and Sepolia                                                                    |
-| `pnpm demo:w-eth [amount]`          | Sends test USDC to a new deposit address on Sepolia and follows it to Asset Hub                                   |
-| `pnpm deploy:sepolia`               | Deploys what is missing from `deployments/sepolia.json` (NTT, Basejump emitter, factory)                          |
-| `pnpm funding:report`               | Lists the testnet funds each account still needs                                                                  |
-| `pnpm probe:exchange-asset`         | Dry-runs the in-XCM USDT.sb to USDT swap on the Hydration fork                                                    |
+| Command                                                | What it does                                                                                                      |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| `pnpm test`                                            | Lint, typecheck, TypeScript tests and Foundry tests                                                               |
+| `pnpm check:env`                                       | Verifies the testnet RPCs, Wormhole, the CREATE2 deployer, our Sepolia deployment and the Snowbridge Gateway      |
+| `pnpm check:forks`                                     | Spawns the Hydration and Asset Hub forks and proves HRMP delivery, the swap home, EVM writes and VAA verification |
+| `pnpm forks:up` / `pnpm forks:down`                    | Starts and stops the Ethereum (anvil), Hydration and Asset Hub mainnet forks                                      |
+| `pnpm relayer:dev`                                     | Runs the relayer against the forks and Sepolia                                                                    |
+| `pnpm demo:w-eth [amount]`                             | Sends test USDC to a new deposit address on Sepolia and follows it to Asset Hub                                   |
+| `pnpm deploy:sepolia`                                  | Deploys what is missing from `deployments/sepolia.json` (NTT, Basejump emitter, factory)                          |
+| `pnpm funding:report`                                  | Lists the testnet funds each account still needs                                                                  |
+| `pnpm bridge:base-sepolia <relayer\|dev-user> <ether>` | Moves an account's Sepolia ETH to Base Sepolia through Base's native bridge                                       |
+| `pnpm probe:exchange-asset`                            | Dry-runs the in-XCM USDT.sb to USDT swap on the Hydration fork                                                    |
 
 ## Layout
 

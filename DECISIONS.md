@@ -454,3 +454,14 @@ maximal) → DepositAsset`.
 - **Not yet (M7):** a crash between sending a source transaction and storing its hash is not recovered
   automatically; refunds have no API endpoint.
 - **Revert:** swap `relayer/src/store.ts` for another store; the worker only needs `open()` and `save()`.
+
+## 2026-11-24 — Base Sepolia ETH bridged from Sepolia at the owner's request
+
+- **What:** `pnpm bridge:base-sepolia <relayer|dev-user> <ether>` deposits an account's own Sepolia ETH into
+  Base's native bridge (OptimismPortal `0x49f53e41452C74589E85cA1677426Ba426459e85` on Sepolia) and waits for
+  the credit on Base Sepolia. Used once per account: 0.01 ETH for the relayer, 0.002 ETH for the dev user.
+- **Why:** the owner's faucet drip was capped and the Coinbase faucet was down; the owner asked for the
+  Sepolia balances to be bridged instead of waiting.
+- **Checked before sending:** the portal address in viem's chain definition, in Base's contract documentation
+  and on-chain (its `systemConfig()` is Base Sepolia's documented SystemConfig).
+- **Revert:** nothing to undo; the script is only a funding convenience.
