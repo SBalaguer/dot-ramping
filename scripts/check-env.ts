@@ -1,17 +1,25 @@
 import {
   CREATE2_DEPLOYER,
   GATEWAY_MODE_NORMAL,
+  HYDRATION_WORMHOLE_CHAIN_ID,
   MAINNET_USDT,
+  SEPOLIA_USDC,
   WORMHOLE_TESTNET,
+  factoryOwner,
   gatewayAbi,
   latestSignedVaa,
   publicClient,
+  readDeployment,
+  relayerAccount,
   snowbridgeGateway,
   wormholeCoreAbi,
   type EvmChainKey,
 } from "@onramp/chains";
-import { spawnEthereumFork } from "@onramp/forks";
-import { keccak256 } from "viem";
+import { basejumpEmitterAbi, factoryAbi, nttManagerAbi } from "@onramp/contracts";
+import { forkContracts, spawnEthereumFork } from "@onramp/forks";
+import { Route } from "@onramp/keys";
+import { basejumpEtherFee } from "@onramp/routes";
+import { isAddressEqual, keccak256, pad, zeroHash } from "viem";
 
 type Testnet = keyof typeof WORMHOLE_TESTNET;
 
@@ -65,6 +73,40 @@ async function create2Deployer(): Promise<string> {
   return `${CREATE2_DEPLOYER} has identical code on ${chains.join(", ")}`;
 }
 
+/** The Sepolia side of W-ETH is wired so a deposit can only go to our emitter and settle to our fork landing. */
+async function sepoliaDeployment(): Promise<string> {
+  const client = publicClient("sepolia");
+  const { factory, basejumpEmitter, nttManager } = readDeployment("sepolia");
+  const relayer = relayerAccount().address;
+  const landing = forkContracts(relayer).basejumpLanding;
+  const factoryContract = { address: factory, abi: factoryAbi } as const;
+  const emitter = { address: basejumpEmitter, abi: basejumpEmitterAbi } as const;
+
+  const [owner, factoryRelayer, [bridge, token], settledTo, manager, peer, etherFee] = await Promise.all([
+    client.readContract({ ...factoryContract, functionName: "owner" }),
+    client.readContract({ ...factoryContract, functionName: "relayer" }),
+    client.readContract({ ...factoryContract, functionName: "routeConfig", args: [Route.Basejump] }),
+    client.readContract({ ...emitter, functionName: "landing" }),
+    client.readContract({ ...emitter, functionName: "nttManagerFor", args: [SEPOLIA_USDC] }),
+    client.readContract({
+      address: nttManager,
+      abi: nttManagerAbi,
+      functionName: "getPeer",
+      args: [HYDRATION_WORMHOLE_CHAIN_ID],
+    }),
+    basejumpEtherFee(client, basejumpEmitter, SEPOLIA_USDC),
+  ]);
+  if (!isAddressEqual(owner, factoryOwner())) throw new Error(`factory owner is ${owner}, not OWNER_EVM_ADDRESS`);
+  if (!isAddressEqual(factoryRelayer, relayer)) throw new Error(`factory relayer is ${factoryRelayer}, not ours`);
+  if (!isAddressEqual(bridge, basejumpEmitter) || !isAddressEqual(token, SEPOLIA_USDC)) {
+    throw new Error(`factory routes Basejump to ${bridge} with token ${token}`);
+  }
+  if (settledTo !== pad(landing).toLowerCase()) throw new Error(`emitter settles to ${settledTo}, not ${landing}`);
+  if (!isAddressEqual(manager, nttManager)) throw new Error(`emitter settles USDC through ${manager}`);
+  if (peer.peerAddress === zeroHash) throw new Error("NTT manager has no peer for Hydration (Wormhole chain 73)");
+  return `factory ${factory} (owner ${owner}) -> emitter ${basejumpEmitter} -> landing ${landing} on Hydration; bridge fee ${etherFee} wei`;
+}
+
 async function gatewayOnFork(forkBlock: number): Promise<string> {
   const client = publicClient("ethereumFork");
   const gateway = { address: snowbridgeGateway(), abi: gatewayAbi } as const;
@@ -113,6 +155,7 @@ try {
       ]),
     )),
     await report("CREATE2 deployer", create2Deployer),
+    await report("W-ETH deployment on Sepolia", sepoliaDeployment),
     await report("Snowbridge Gateway on Ethereum fork", () => gatewayOnFork(fork.spec.block)),
     await report("Hydration Paseo is dead", hydrationPaseoDead),
   ];

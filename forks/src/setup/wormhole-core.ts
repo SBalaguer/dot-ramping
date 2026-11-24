@@ -11,6 +11,7 @@ import {
   concatHex,
   encodeAbiParameters,
   encodeFunctionData,
+  getAddress,
   getContractAddress,
   type Account,
   type Address,
@@ -97,7 +98,7 @@ export async function deployTestnetWormholeCore(deployer: Account): Promise<Addr
     if (receipt.status !== "success" || !receipt.contractAddress) {
       throw new Error(`Wormhole core deployment ${hash} failed`);
     }
-    return receipt.contractAddress;
+    return getAddress(receipt.contractAddress);
   };
 
   const implementation = await deploy(implementationCode);

@@ -1,7 +1,6 @@
 import { rmSync, writeFileSync } from "node:fs";
 
-import type { Hex } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
+import { relayerAccount } from "@onramp/chains";
 
 import { spawnEthereumFork } from "./ethereum";
 import { PID_FILE } from "./pidfile";
@@ -9,8 +8,7 @@ import { spawnPolkadotForks, teardownPolkadotForks } from "./polkadot";
 import { setUpHydrationFork } from "./setup";
 import { assetHub, hydration } from "./specs";
 
-const relayerKey = process.env.RELAYER_EVM_PK;
-if (!relayerKey) throw new Error("RELAYER_EVM_PK is not set; the relayer key deploys the fork-side contracts (.env)");
+const operator = relayerAccount();
 
 const ethereum = await spawnEthereumFork();
 const polkadot = await spawnPolkadotForks().catch(async (err) => {
@@ -26,12 +24,12 @@ const stop = async (): Promise<void> => {
 };
 
 try {
-  const setup = await setUpHydrationFork(polkadot, privateKeyToAccount(relayerKey as Hex));
+  const deployed = await setUpHydrationFork(polkadot, operator);
   console.log(`${"Ethereum".padEnd(10)} ${ethereum.url}  (forked at #${ethereum.spec.block})`);
   for (const spec of [hydration, assetHub]) {
     console.log(`${spec.name.padEnd(10)} ws://127.0.0.1:${spec.port}  (forked at #${spec.block})`);
   }
-  console.log(`Wormhole core (testnet guardians) on Hydration: ${setup.wormholeCore}`);
+  for (const [name, address] of Object.entries(deployed)) console.log(`${name.padEnd(18)} ${address}  (Hydration)`);
   console.log("Forks ready. Ctrl-C or `pnpm forks:down` to stop.");
 } catch (err) {
   await stop();
