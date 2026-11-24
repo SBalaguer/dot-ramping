@@ -1,6 +1,5 @@
-import { BASE_SEPOLIA_USDC, SEPOLIA_USDC, publicClient } from "@onramp/chains";
-import { erc20Abi, formatUnits, parseEther, parseUnits, type Address, type Hex } from "viem";
-import { privateKeyToAddress } from "viem/accounts";
+import { BASE_SEPOLIA_USDC, SEPOLIA_USDC, devUserAccount, publicClient, relayerAccount } from "@onramp/chains";
+import { erc20Abi, formatUnits, parseEther, parseUnits, type Address } from "viem";
 
 type Testnet = "sepolia" | "baseSepolia";
 
@@ -17,15 +16,9 @@ interface Requirement {
 const ETH = { symbol: "ETH", decimals: 18 };
 const CHAIN_NAMES: Record<Testnet, string> = { sepolia: "Sepolia", baseSepolia: "Base Sepolia" };
 
-function addressFromEnv(key: string): Address {
-  const privateKey = process.env[key];
-  if (!privateKey) throw new Error(`${key} is not set; copy .env.example to .env and fill it in`);
-  return privateKeyToAddress(privateKey as Hex);
-}
-
 function requirements(): Requirement[] {
-  const relayer = addressFromEnv("RELAYER_EVM_PK");
-  const user = addressFromEnv("DEV_USER_EVM_PK");
+  const relayer = relayerAccount().address;
+  const user = devUserAccount().address;
   return [
     { account: "relayer", address: relayer, chain: "sepolia", token: ETH, required: parseEther("0.05") },
     { account: "relayer", address: relayer, chain: "baseSepolia", token: ETH, required: parseEther("0.05") },

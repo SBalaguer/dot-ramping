@@ -1,4 +1,4 @@
-import { parseAbi, toHex, type Address, type Hex } from "viem";
+import { pad, parseAbi, toHex, type Address, type Hex } from "viem";
 
 import { endpoints } from "./endpoints";
 import type { EvmChainKey } from "./evm";
@@ -58,4 +58,14 @@ export async function latestSignedVaa(chainId: number): Promise<SignedVaa | unde
       bytes: toHex(Buffer.from(vaa.vaa, "base64")),
     }
   );
+}
+
+/** The guardian-signed VAA for one message, or nothing while the guardians have not signed it yet. */
+export async function signedVaa(chainId: number, emitter: Address, sequence: bigint): Promise<Hex | undefined> {
+  const id = `${chainId}/${pad(emitter).slice(2)}/${sequence}`;
+  const response = await fetch(`${endpoints.wormholescanApi}/api/v1/vaas/${id}`);
+  if (response.status === 404) return undefined;
+  if (!response.ok) throw new Error(`Wormholescan responded ${response.status} for VAA ${id}`);
+  const body = (await response.json()) as { data?: { vaa?: string } };
+  return body.data?.vaa ? toHex(Buffer.from(body.data.vaa, "base64")) : undefined;
 }
