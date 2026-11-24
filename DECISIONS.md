@@ -355,3 +355,21 @@ maximal) → DepositAsset`.
   XCM-only variant is most expensive, so the per-top-up key signs `router.sell` with the explicit two-pool
   route. The two-`ExchangeAsset` XCM stays available as a signature-free variant if the owner prefers it.
 - **Revert:** drop the `via` case from `forks/src/probes/exchange-asset.ts`.
+
+## 2026-11-24 — S-ETH swap: signed batch along the direct route (owner decision)
+
+- **What:** M6 swaps USDT.sb → USDT with a transaction signed by the per-top-up key instead of `ExchangeAsset`
+  in the Snowbridge XCM. The XCM deposits USDT.sb to the per-top-up account on Hydration; that key then signs
+  one `Utility.batch_all` holding `Router.sell` with the explicit route
+  `[Stableswap 103 USDT.sb → aUSDT, Aave aUSDT → USDT]` and the XCM transfer of the USDT to Asset Hub. The fee
+  is paid from the inbound USDT.sb.
+- **Why:** the owner's rule: the app holds the per-top-up key and can pay fees from the inbound asset, so when
+  a better price exists for the user it must be taken. The direct route returns about par; the signature-free
+  two-`ExchangeAsset` XCM costs 0.7% to 14% (previous entry). A signed swap also carries a min-out computed
+  for the actual amount, which the constant in the XCM template cannot.
+- **Atomicity:** `batch_all` makes the swap and the transfer to Asset Hub all-or-nothing. Arrival of the
+  Snowbridge XCM and the batch stay two steps; between them the funds are USDT.sb in the per-top-up account,
+  recoverable with its key.
+- **To verify in M6:** a fresh account holding only USDT.sb can pay the batch fee; the batch dry-runs clean
+  before it is submitted.
+- **Revert:** build the XCM with the two `ExchangeAsset` hops through HDX measured in the previous entry.
