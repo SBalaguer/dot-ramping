@@ -33,9 +33,18 @@ first.
 ```sh
 pnpm forks:up           # terminal 1: Ethereum, Hydration and Asset Hub forks plus the fork-side contracts
 pnpm relayer:dev        # terminal 2: relayer on http://127.0.0.1:8787
-pnpm demo:w-eth 5       # terminal 3: deposits 5 USDC on Sepolia from the dev wallet and follows the top-up
-pnpm demo:w-base 5      #             the same on Base Sepolia (mints the USDC from Aave's faucet)
-pnpm demo:s-eth 300     #             300 USDT on the Ethereum fork, through Snowbridge
+pnpm web:dev            # terminal 3: dashboard on http://127.0.0.1:5173
+```
+
+The dashboard starts a top-up with one click per route (a new deposit address, then a deposit to it from the
+dev wallet), and shows each top-up's deposit address with its QR code, its Asset Hub account, where the
+money currently is, and a live timeline of every step with links to the testnet explorers and Wormholescan.
+It only talks to the relayer. The same three demos run from a terminal:
+
+```sh
+pnpm demo:w-eth 5       # 5 USDC on Sepolia, through Basejump
+pnpm demo:w-base 5      # 5 USDC on Base Sepolia, through the HOLLAR PSM (minted from Aave's faucet)
+pnpm demo:s-eth 300     # 300 USDT on the Ethereum fork, through Snowbridge
 ```
 
 A top-up has one deposit address, valid on all three source chains. The chain a deposit arrives on and its
@@ -44,13 +53,17 @@ has only one.
 
 ### Relayer API
 
-| Request                   | What it does                                                                                            |
-| ------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `POST /topups`            | Creates a top-up and returns its deposit address and Asset Hub account                                  |
-| `GET /topups`, `/:id`     | Reads top-ups with every step, its status and its references                                            |
-| `GET /events`             | Streams every change as server-sent events                                                              |
-| `POST /topups/:id/refund` | Sends what is at the deposit address to the top-up's refund address; refused once it has been forwarded |
-| `POST /topups/:id/retry`  | Gives a top-up whose step failed eight times a fresh set of attempts                                    |
+| Request                    | What it does                                                                                            |
+| -------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `POST /topups`             | Creates a top-up and returns its deposit address and Asset Hub account                                  |
+| `GET /topups`, `/:id`      | Reads top-ups with every step, its status and its references                                            |
+| `GET /topups/:id/balances` | What the deposit address and the top-up's accounts hold on each chain                                   |
+| `GET /events`              | Streams every change as server-sent events                                                              |
+| `GET /config`              | The factory, the source chains with their tokens and routes, and the routing threshold                  |
+| `GET /routes?amount=`      | The route a deposit of that size would take on each source chain                                        |
+| `POST /topups/:id/deposit` | Sends `{ chain, amount }` from the dev wallet to the deposit address; only with `DEV_USER_EVM_PK` set   |
+| `POST /topups/:id/refund`  | Sends what is at the deposit address to the top-up's refund address; refused once it has been forwarded |
+| `POST /topups/:id/retry`   | Gives a top-up whose step failed eight times a fresh set of attempts                                    |
 
 The relayer can be stopped at any point and picks every open top-up up where it was. The API has no
 authentication; it is meant for a local machine.
@@ -69,6 +82,7 @@ execute for real.
 | `pnpm check:forks [word]`                                | Spawns the forks and proves HRMP delivery, the swap home from each payout asset, EVM writes, VAA verification and S-ETH end to end; a word runs only the checks named with it |
 | `pnpm forks:up` / `pnpm forks:down`                      | Starts and stops the Ethereum (anvil), Hydration and Asset Hub mainnet forks                                                                                                  |
 | `pnpm relayer:dev`                                       | Runs the relayer against the forks and the two testnets                                                                                                                       |
+| `pnpm web:dev`                                           | Serves the dashboard; `VITE_RELAYER_URL` points it at a relayer other than `http://127.0.0.1:8787`                                                                            |
 | `pnpm demo:w-eth [amount]` / `pnpm demo:w-base [amount]` | Sends test USDC to a new deposit address on Sepolia or Base Sepolia and follows it to Asset Hub                                                                               |
 | `pnpm demo:s-eth [amount]`                               | Sends USDT to a new deposit address on the Ethereum fork and follows it to Asset Hub                                                                                          |
 | `pnpm deploy:testnets`                                   | Deploys what is missing from `deployments/` on Sepolia and Base Sepolia (bridges, then the factory)                                                                           |

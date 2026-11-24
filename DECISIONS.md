@@ -659,3 +659,30 @@ DepositAsset → beneficiary] }, RefundSurplus, DepositAsset(all ether) → bene
   needs these charged to the user or bounded by a minimum deposit as well.
 - **How to change it:** add a `Currencies.transfer` of the float to the relayer's Hydration account to the
   batch in `swapAndSendHome` when the fee asset is the fronted USDT, and subtract it from the amount sent.
+
+## 2026-11-24 — Dashboard (M8)
+
+- **What:** `web/` is a Vite and React page that only talks to the relayer: it lists top-ups, follows them
+  over the relayer's event stream, and shows each one's deposit address with a QR code, its Asset Hub
+  account, the non-zero balances along its path, and a timeline of every step with timestamps, durations
+  and references. Testnet transactions and addresses link to Etherscan and Basescan, Wormhole messages to
+  Wormholescan; fork references are shown without links. `RELAY_SIMULATED` carries a "relay simulated"
+  badge and a note that the hop takes about 30 minutes on mainnet.
+- **No chain chooser (deviation from HANDOFF §11):** a top-up has one deposit address for all three source
+  chains, so the form does not ask for a chain. Instead a route preview shows, for any amount, the route a
+  deposit would take on each chain. It asks the relayer (`GET /routes`), so it cannot disagree with it.
+- **One-click demos go through the relayer.** The browser never writes to a chain. `POST
+/topups/:id/deposit` makes the relayer send the deposit from the dev wallet, a different key from the
+  relayer's own; the endpoint only exists when `DEV_USER_EVM_PK` is set. `scripts/demo.ts` uses the same
+  endpoint, so the dev wallet's logic lives in one place (`relayer/src/demo.ts`).
+- **API additions:** `GET /config`, `GET /routes?amount=`, `GET /topups/:id/balances`, and a `plan` field
+  on every top-up (the steps of its current pipeline), which lets the timeline show the steps still ahead.
+  The API's wire types are in `relayer/src/api-types.ts`, imported by the dashboard as types only.
+- **Shown as it is:** amounts inside step references are raw units, as the relayer records them; the
+  summary figures are formatted. A cost below zero is shown as "gained by the user".
+- **Checked in a real browser:** each of the three demo buttons was clicked in headless Chrome and its
+  top-up followed to completion (W-ETH 5 → 4.904715, W-BASE 5 → 5.010395, S-ETH 300 → 300.060478 USDT),
+  in light and dark mode and at phone width, plus the refund button's refusal on an empty address.
+- **New dependencies:** `react`, `react-dom`, `qrcode.react`, `vite`, `@vitejs/plugin-react` in `web/`;
+  `eslint-plugin-react-hooks` at the root.
+- **Revert:** not applicable.
