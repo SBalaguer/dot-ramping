@@ -20,10 +20,10 @@ function requirements(): Requirement[] {
   const relayer = relayerAccount().address;
   const user = devUserAccount().address;
   return [
-    { account: "relayer", address: relayer, chain: "sepolia", token: ETH, required: parseEther("0.05") },
-    { account: "relayer", address: relayer, chain: "baseSepolia", token: ETH, required: parseEther("0.05") },
-    { account: "dev user", address: user, chain: "sepolia", token: ETH, required: parseEther("0.02") },
-    { account: "dev user", address: user, chain: "baseSepolia", token: ETH, required: parseEther("0.01") },
+    { account: "relayer", address: relayer, chain: "sepolia", token: ETH, required: parseEther("0.01") },
+    { account: "relayer", address: relayer, chain: "baseSepolia", token: ETH, required: parseEther("0.01") },
+    { account: "dev user", address: user, chain: "sepolia", token: ETH, required: parseEther("0.002") },
+    { account: "dev user", address: user, chain: "baseSepolia", token: ETH, required: parseEther("0.002") },
     {
       account: "dev user",
       address: user,
