@@ -19,11 +19,14 @@ interface Demo {
   symbol: string;
   /** Deposit when no amount is given; the Snowbridge route starts at the routing threshold. */
   defaultAmount: string;
-  /** Tops the dev wallet up when the chain has a faucet anyone can call. */
-  obtain?: (user: Actor, amount: bigint) => Promise<void>;
+  /** Tops the dev wallet up by at least `shortfall` when the chain has a faucet anyone can call; returns what it minted. */
+  obtain?: (user: Actor, shortfall: bigint) => Promise<bigint>;
 }
 
 const faucetAbi = parseAbi(["function mint(address token, address to, uint256 amount) returns (uint256)"]);
+const DECIMALS = 6;
+/** Aave's faucet serves an address once an hour, so one mint has to cover many demo runs. */
+const FAUCET_STOCK = parseUnits("1000", DECIMALS);
 
 const DEMOS: Record<string, Demo> = {
   "w-eth": { chain: "sepolia", chainName: "Sepolia", token: SEPOLIA_USDC, symbol: "USDC", defaultAmount: "5" },
@@ -33,9 +36,11 @@ const DEMOS: Record<string, Demo> = {
     token: BASE_SEPOLIA_USDC,
     symbol: "USDC",
     defaultAmount: "5",
-    obtain: async (user, amount) => {
+    obtain: async (user, shortfall) => {
+      const amount = shortfall > FAUCET_STOCK ? shortfall : FAUCET_STOCK;
       const args = [BASE_SEPOLIA_USDC, user.wallet.account.address, amount] as const;
       await send(user, { address: BASE_SEPOLIA_AAVE_FAUCET, abi: faucetAbi, functionName: "mint", args });
+      return amount;
     },
   },
   /** `pnpm forks:up` gives the dev wallet its USDT on the fork. */
@@ -49,7 +54,6 @@ const DEMOS: Record<string, Demo> = {
 };
 
 const RELAYER = process.env.RELAYER_URL ?? "http://127.0.0.1:8787";
-const DECIMALS = 6;
 const POLL_MS = 2_000;
 /** Whole messages, too long to print. */
 const LONG_REFS = new Set(["vaa", "xcm", "message"]);
@@ -70,11 +74,6 @@ async function relayer(path: string, init?: RequestInit): Promise<TopUpView> {
   return (await response.json()) as TopUpView;
 }
 
-const created = await relayer("/topups", { method: "POST" });
-log(`top-up ${created.id}`);
-log(`  deposit address    ${created.forwarder}`);
-log(`  Asset Hub account  ${created.beneficiary.ss58}`);
-
 const user = actor(demo.chain, devUserAccount());
 // Tether's ABI also fits the USDC tokens: only `transfer`'s unused return value differs.
 const token = { address: demo.token, abi: tetherAbi } as const;
@@ -87,9 +86,14 @@ if (balance < amount) {
   if (!demo.obtain) {
     throw new Error(`the dev wallet holds ${formatUnits(balance, DECIMALS)} ${demo.symbol} on ${demo.chainName}`);
   }
-  await demo.obtain(user, amount - balance);
-  log(`minted ${formatUnits(amount - balance, DECIMALS)} ${demo.symbol} from the faucet on ${demo.chainName}`);
+  const minted = await demo.obtain(user, amount - balance);
+  log(`minted ${formatUnits(minted, DECIMALS)} ${demo.symbol} from the faucet on ${demo.chainName}`);
 }
+const created = await relayer("/topups", { method: "POST" });
+log(`top-up ${created.id}`);
+log(`  deposit address    ${created.forwarder}`);
+log(`  Asset Hub account  ${created.beneficiary.ss58}`);
+
 const transfer = await user.wallet.writeContract({
   ...token,
   functionName: "transfer",
